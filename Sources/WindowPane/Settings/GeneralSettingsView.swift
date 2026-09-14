@@ -7,6 +7,7 @@ import AppKit
 
 struct GeneralSettingsView: View {
     @AppStorage(AppSettings.gapKey) private var gap: Double = 0
+    @AppStorage(AppSettings.autoCheckUpdatesKey) private var autoCheckUpdates: Bool = true
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var isTrusted = Accessibility.isTrusted
     @State private var importError = false
@@ -20,7 +21,7 @@ struct GeneralSettingsView: View {
                     TextField("Gap", value: $gap, format: .number)
                         .frame(width: 76)
                         .multilineTextAlignment(.trailing)
-                    Text("pt")
+                    Text("px")
                         .foregroundStyle(.secondary)
                 }
             }
@@ -60,6 +61,7 @@ struct GeneralSettingsView: View {
                             launchAtLogin = SMAppService.mainApp.status == .enabled
                         }
                     }
+                Toggle("Check for updates on launch", isOn: $autoCheckUpdates)
                 HStack {
                     Label(
                         isTrusted ? "Accessibility granted" : "Accessibility permission required",

@@ -25,6 +25,13 @@ struct CommandEditorView: View {
                 DimensionField(label: "Offset X", dimension: offsetBinding(\.offsetX), allowsKeep: false)
                 DimensionField(label: "Offset Y", dimension: offsetBinding(\.offsetY), allowsKeep: false)
             }
+            Section {
+                PresetPicker(command: $command)
+            } header: {
+                Text("Presets")
+            } footer: {
+                Text("One-tap starting points — set width, height, and anchor in a single click.")
+            }
             Section("Preview") {
                 PreviewDiagram(command: command)
                     .frame(height: 170)
@@ -249,5 +256,50 @@ struct PreviewDiagram: View {
                     .offset(x: target.minX, y: area.height - target.maxY)
             }
         }
+    }
+}
+
+struct PresetPicker: View {
+    @Binding var command: WindowCommand
+
+    private struct Preset {
+        let label: String
+        let width: WindowDimension?
+        let height: WindowDimension?
+        let anchor: WindowPaneCore.Anchor
+        let offsetX: WindowDimension
+        let offsetY: WindowDimension
+    }
+
+    private static let presets: [Preset] = [
+        Preset(label: "Left Half", width: .percent(50), height: .percent(100), anchor: .topLeft, offsetX: .percent(0), offsetY: .percent(0)),
+        Preset(label: "Right Half", width: .percent(50), height: .percent(100), anchor: .topRight, offsetX: .percent(0), offsetY: .percent(0)),
+        Preset(label: "Top Half", width: .percent(100), height: .percent(50), anchor: .topLeft, offsetX: .percent(0), offsetY: .percent(0)),
+        Preset(label: "Bottom Half", width: .percent(100), height: .percent(50), anchor: .bottomLeft, offsetX: .percent(0), offsetY: .percent(0)),
+        Preset(label: "Maximize", width: .percent(100), height: .percent(100), anchor: .topLeft, offsetX: .percent(0), offsetY: .percent(0)),
+        Preset(label: "Center", width: nil, height: nil, anchor: .center, offsetX: .percent(0), offsetY: .percent(0)),
+        Preset(label: "Top Left Quarter", width: .percent(50), height: .percent(50), anchor: .topLeft, offsetX: .percent(0), offsetY: .percent(0)),
+        Preset(label: "Top Right Quarter", width: .percent(50), height: .percent(50), anchor: .topRight, offsetX: .percent(0), offsetY: .percent(0)),
+        Preset(label: "Bottom Left Quarter", width: .percent(50), height: .percent(50), anchor: .bottomLeft, offsetX: .percent(0), offsetY: .percent(0)),
+        Preset(label: "Bottom Right Quarter", width: .percent(50), height: .percent(50), anchor: .bottomRight, offsetX: .percent(0), offsetY: .percent(0)),
+    ]
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(Self.presets, id: \.label) { preset in
+                    Button(preset.label) { apply(preset) }
+                        .buttonStyle(.bordered)
+                }
+            }
+        }
+    }
+
+    private func apply(_ preset: Preset) {
+        command.width = preset.width
+        command.height = preset.height
+        command.anchor = preset.anchor
+        command.offsetX = preset.offsetX
+        command.offsetY = preset.offsetY
     }
 }

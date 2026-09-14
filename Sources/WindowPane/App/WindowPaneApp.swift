@@ -1,5 +1,6 @@
 import WindowPaneCore
 import SwiftUI
+import KeyboardShortcuts
 
 @main
 struct WindowPaneApp: App {
@@ -48,6 +49,7 @@ struct MenuContent: View {
             Button(command.name.isEmpty ? "Untitled" : command.name) {
                 CommandApplier.shared.apply(command)
             }
+            .keyboardShortcut(for: command)
         }
 
         if !appShortcutStore.validShortcuts.isEmpty {
@@ -57,6 +59,7 @@ struct MenuContent: View {
                     Button(shortcut.name.isEmpty ? "Untitled" : shortcut.name) {
                         AppShortcutStore.shared.activate(shortcut.id)
                     }
+                    .keyboardShortcut(for: shortcut)
                 }
             }
         }
@@ -92,5 +95,23 @@ struct MenuContent: View {
                 .first { $0.title == "WindowPane Settings" }?
                 .makeKeyAndOrderFront(nil)
         }
+    }
+}
+
+private extension View {
+    func keyboardShortcut(for command: WindowCommand) -> some View {
+        if let shortcut = KeyboardShortcuts.getShortcut(for: HotkeyManager.name(for: command.id)),
+           let ks = shortcut.swiftUIShortcut {
+            return AnyView(self.keyboardShortcut(ks))
+        }
+        return AnyView(self)
+    }
+
+    func keyboardShortcut(for shortcut: AppShortcut) -> some View {
+        if let hotkey = KeyboardShortcuts.getShortcut(for: HotkeyManager.appJumpName(for: shortcut.id)),
+           let ks = hotkey.swiftUIShortcut {
+            return AnyView(self.keyboardShortcut(ks))
+        }
+        return AnyView(self)
     }
 }

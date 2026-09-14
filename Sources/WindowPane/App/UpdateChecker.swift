@@ -16,6 +16,36 @@ enum UpdateChecker {
         }
     }
 
+    static func checkForUpdatesOnLaunch() {
+        Task {
+            let release = await fetchLatestRelease()
+            await MainActor.run { presentUpdateIfAvailable(release) }
+        }
+    }
+
+    private static func presentUpdateIfAvailable(_ release: Release?) {
+        guard let release, VersionCompare.isNewer(release.version, than: currentVersion) else { return }
+        let alert = NSAlert()
+        alert.messageText = "WindowPane \(release.version) is available"
+        alert.informativeText = "You are running version \(currentVersion)."
+        alert.addButton(withTitle: "Download and Install")
+        alert.addButton(withTitle: "Open Release Page")
+        alert.addButton(withTitle: "Later")
+        let response = alert.runModal()
+        switch response {
+        case .alertFirstButtonReturn:
+            if let dmgURL = release.dmgURL {
+                downloadAndInstall(dmgURL, version: release.version)
+            } else {
+                NSWorkspace.shared.open(release.pageURL)
+            }
+        case .alertSecondButtonReturn:
+            NSWorkspace.shared.open(release.pageURL)
+        default:
+            break
+        }
+    }
+
     private struct Release {
         let version: String
         let pageURL: URL

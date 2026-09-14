@@ -7,10 +7,7 @@ This file is meant to live alongside the project and can be referenced from a la
 
 - **Recently-used ordering in the picker** — on an empty query, sort by last-invoked timestamp instead of insertion order. Needs a small `[UUID: Date]` usage log persisted alongside the stores.
 - **"Test" button in editors** — try a command or app shortcut without closing the editor sheet.
-- **Quick preset buttons in the command editor** — one-tap starting points (Left Half, Maximize, Center) that set width/height/anchor in a single click.
-- **Auto-check for updates on launch** — `UpdateChecker` exists but is manual-only. A toggle in General settings + a silent background check would close the gap.
 - **Hover-to-highlight in the picker** — mouse hover highlights the row under the cursor, not just keyboard-driven selection.
-- **Menu bar key equivalents** — show hotkey shortcuts next to pinned commands in the menu bar dropdown.
 
 ## Larger features
 

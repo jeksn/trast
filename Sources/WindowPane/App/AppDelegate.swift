@@ -1,4 +1,5 @@
 import AppKit
+import WindowPaneCore
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -11,6 +12,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             forEventClass: AEEventClass(0x4755524C),
             andEventID: AEEventID(0x4755524C)
         )
+
+        if AppSettings.autoCheckUpdates {
+            UpdateChecker.checkForUpdatesOnLaunch()
+        }
     }
 
     @objc private func handleGetURLEvent(_ event: NSAppleEventDescriptor, withReplyEvent reply: NSAppleEventDescriptor) {
