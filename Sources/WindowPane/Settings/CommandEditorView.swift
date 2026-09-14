@@ -36,6 +36,15 @@ struct CommandEditorView: View {
                 PreviewDiagram(command: command)
                     .frame(height: 170)
             }
+            Section {
+                Button("Test on Focused Window") {
+                    CommandApplier.shared.apply(command, target: WindowManipulator.lastActiveNonSelfWindow())
+                }
+            } header: {
+                Text("Test")
+            } footer: {
+                Text("Applies the current geometry to the frontmost window without closing this editor.")
+            }
             if command.isDefault {
                 if command.defaultSeed != nil {
                     Section("Reset") {

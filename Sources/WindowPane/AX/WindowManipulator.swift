@@ -28,6 +28,25 @@ enum WindowManipulator {
         return window(ofProcess: app.processIdentifier)
     }
 
+    static func lastActiveNonSelfWindow() -> WindowRef? {
+        let ourPID = ProcessInfo.processInfo.processIdentifier
+
+        guard let windowList = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] else {
+            return nil
+        }
+
+        for info in windowList {
+            guard let layer = info[kCGWindowLayer as String] as? Int, layer == 0 else { continue }
+            guard let ownerPID = info[kCGWindowOwnerPID as String] as? Int else { continue }
+            if ownerPID == Int(ourPID) { continue }
+            if let window = window(ofProcess: pid_t(ownerPID)) {
+                return window
+            }
+        }
+
+        return nil
+    }
+
     static func window(ofProcess pid: pid_t) -> WindowRef? {
         let app = AXUIElementCreateApplication(pid)
         var result: CFTypeRef?

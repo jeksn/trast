@@ -69,7 +69,18 @@ final class PickerViewModel: ObservableObject {
     }
 
     var filtered: [PickerItem] {
-        FuzzyMatch.ranked(items, query: query) { $0.title }
+        let trimmed = query.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else {
+            let ids = UsageTracker.shared.sortedByRecent(items.map(\.id))
+            let idOrder = Dictionary(uniqueKeysWithValues: ids.enumerated().map { ($1, $0) })
+            return items.sorted { (a, b) in
+                let ia = idOrder[a.id] ?? Int.max
+                let ib = idOrder[b.id] ?? Int.max
+                if ia != ib { return ia < ib }
+                return a.title.localizedCaseInsensitiveCompare(b.title) == .orderedAscending
+            }
+        }
+        return FuzzyMatch.ranked(items, query: query) { $0.title }
     }
 
     var sections: [PickerSection] {

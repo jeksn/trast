@@ -5,9 +5,7 @@ This file is meant to live alongside the project and can be referenced from a la
 
 ## Quick wins
 
-- **Recently-used ordering in the picker** — on an empty query, sort by last-invoked timestamp instead of insertion order. Needs a small `[UUID: Date]` usage log persisted alongside the stores.
-- **"Test" button in editors** — try a command or app shortcut without closing the editor sheet.
-- **Hover-to-highlight in the picker** — mouse hover highlights the row under the cursor, not just keyboard-driven selection.
+_(All quick wins shipped — see the Larger features below or add new ideas here.)_
 
 ## Larger features
 

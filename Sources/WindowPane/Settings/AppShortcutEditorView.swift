@@ -36,6 +36,17 @@ struct AppShortcutEditorView: View {
                 KeyboardShortcuts.Recorder("Hotkey:", name: HotkeyManager.appJumpName(for: shortcut.id))
             }
 
+            Section {
+                Button("Test Shortcut") {
+                    AppShortcutStore.shared.activate(shortcut.id)
+                }
+                .disabled(!shortcut.isValid)
+            } header: {
+                Text("Test")
+            } footer: {
+                Text("Launches or opens the configured app, URL, or folder without closing this editor.")
+            }
+
             Section("Danger Zone") {
                 Button(role: .destructive) {
                     showingDeleteConfirmation = true

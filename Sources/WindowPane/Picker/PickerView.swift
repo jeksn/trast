@@ -72,6 +72,8 @@ struct PickerRowView: View {
     let isSelected: Bool
     let query: String
 
+    @State private var isHovered = false
+
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: item.icon)
@@ -90,9 +92,16 @@ struct PickerRowView: View {
         .padding(.vertical, 8)
         .background(
             RoundedRectangle(cornerRadius: 6)
-                .fill(isSelected ? Color.accentColor.opacity(0.25) : Color.clear)
+                .fill(rowBackground)
         )
         .padding(.horizontal, 6)
+        .onHover { isHovered = $0 }
+    }
+
+    private var rowBackground: Color {
+        if isSelected { return Color.accentColor.opacity(0.25) }
+        if isHovered { return Color.accentColor.opacity(0.10) }
+        return Color.clear
     }
 
     private var highlightedTitle: Text {

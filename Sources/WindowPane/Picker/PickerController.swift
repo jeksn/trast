@@ -47,6 +47,7 @@ final class PickerController: NSObject, NSWindowDelegate {
     }
 
     private func handle(_ item: PickerItem) {
+        UsageTracker.shared.record(item.id)
         switch item {
         case .command(let command, _):
             close()
