@@ -46,5 +46,28 @@ enum FuzzyMatchTests {
             let ranked = FuzzyMatch.ranked(["Left Half", "Maximize"], query: "max") { $0 }
             t.check(ranked == ["Maximize"], "got \(ranked)")
         }
+
+        t.run("FuzzyMatch.matchedIndicesSubsequence") {
+            let indices = FuzzyMatch.matchedIndices(query: "lh", target: "Left Half")
+            t.check(indices == [0, 5], "got \(String(describing: indices))")
+        }
+
+        t.run("FuzzyMatch.matchedIndicesConsecutive") {
+            let indices = FuzzyMatch.matchedIndices(query: "lef", target: "Left Half")
+            t.check(indices == [0, 1, 2], "got \(String(describing: indices))")
+        }
+
+        t.run("FuzzyMatch.matchedIndicesEmptyQuery") {
+            t.check(FuzzyMatch.matchedIndices(query: "", target: "Left Half") == [], "empty query should return empty")
+        }
+
+        t.run("FuzzyMatch.matchedIndicesNonMatchReturnsNil") {
+            t.check(FuzzyMatch.matchedIndices(query: "xz", target: "Left Half") == nil, "non-match should return nil")
+        }
+
+        t.run("FuzzyMatch.scoreUnchangedAfterRefactor") {
+            t.check(FuzzyMatch.score(query: "lh", target: "Left Half") != nil, "lh should still match")
+            t.check(FuzzyMatch.score(query: "lef", target: "Left Half")! > FuzzyMatch.score(query: "lf", target: "Left Half")!, "prefix bonus preserved")
+        }
     }
 }

@@ -42,7 +42,7 @@ struct PickerView: View {
                                     Spacer()
                                 }
                                 ForEach(section.items) { item in
-                                    PickerRowView(item: item, isSelected: item.id == viewModel.filtered[safe: viewModel.selectedIndex]?.id)
+                                    PickerRowView(item: item, isSelected: item.id == viewModel.filtered[safe: viewModel.selectedIndex]?.id, query: viewModel.query)
                                         .id(item.id)
                                         .onTapGesture { onSelect(item) }
                                 }
@@ -70,13 +70,14 @@ struct PickerView: View {
 struct PickerRowView: View {
     let item: PickerItem
     let isSelected: Bool
+    let query: String
 
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: item.icon)
                 .foregroundStyle(.secondary)
                 .frame(width: 18)
-            Text(item.title.isEmpty ? "Untitled" : item.title)
+            highlightedTitle
                 .lineLimit(1)
             Spacer()
             if let shortcut = KeyboardShortcuts.getShortcut(for: item.hotkeyName) {
@@ -92,5 +93,26 @@ struct PickerRowView: View {
                 .fill(isSelected ? Color.accentColor.opacity(0.25) : Color.clear)
         )
         .padding(.horizontal, 6)
+    }
+
+    private var highlightedTitle: Text {
+        let title = item.title.isEmpty ? "Untitled" : item.title
+        let trimmedQuery = query.trimmingCharacters(in: .whitespaces)
+        guard !trimmedQuery.isEmpty,
+              let indices = FuzzyMatch.matchedIndices(query: trimmedQuery, target: title),
+              !indices.isEmpty else {
+            return Text(title)
+        }
+
+        let matchedSet = Set(indices)
+        var result = AttributedString()
+        for (i, char) in title.enumerated() {
+            var attributed = AttributedString(String(char))
+            if matchedSet.contains(i) {
+                attributed.font = .body.weight(.semibold)
+            }
+            result += attributed
+        }
+        return Text(result)
     }
 }

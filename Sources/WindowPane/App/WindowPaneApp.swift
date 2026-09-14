@@ -28,6 +28,7 @@ struct WindowPaneApp: App {
 
 struct MenuContent: View {
     @EnvironmentObject private var store: CommandStore
+    @EnvironmentObject private var appShortcutStore: AppShortcutStore
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
@@ -49,9 +50,23 @@ struct MenuContent: View {
             }
         }
 
+        if !appShortcutStore.validShortcuts.isEmpty {
+            Divider()
+            Menu("Shortcuts") {
+                ForEach(appShortcutStore.validShortcuts) { shortcut in
+                    Button(shortcut.name.isEmpty ? "Untitled" : shortcut.name) {
+                        AppShortcutStore.shared.activate(shortcut.id)
+                    }
+                }
+            }
+        }
+
         Divider()
         Button("Restore Previous Size") {
             CommandApplier.shared.restore()
+        }
+        Button("Next Window") {
+            WindowCycler.cycleNext()
         }
         Button("Quick Picker…") {
             PickerController.shared.show()

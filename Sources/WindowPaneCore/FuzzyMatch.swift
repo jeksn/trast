@@ -1,29 +1,40 @@
 public enum FuzzyMatch {
-    public static func score(query: String, target: String) -> Int? {
+    public static func matchedIndices(query: String, target: String) -> [Int]? {
         let queryChars = Array(query.lowercased())
         let targetChars = Array(target.lowercased())
-        guard !queryChars.isEmpty else { return 0 }
+        guard !queryChars.isEmpty else { return [] }
         guard !targetChars.isEmpty else { return nil }
 
-        var total = 0
+        var indices: [Int] = []
         var searchIndex = 0
-        var consecutive = false
-
         for char in queryChars {
             var matched = false
             while searchIndex < targetChars.count {
                 if targetChars[searchIndex] == char {
                     matched = true
-                    total += consecutive ? 6 : 2
-                    if searchIndex == 0 { total += 4 }
-                    consecutive = true
+                    indices.append(searchIndex)
                     searchIndex += 1
                     break
                 }
                 searchIndex += 1
-                consecutive = false
             }
             guard matched else { return nil }
+        }
+        return indices
+    }
+
+    public static func score(query: String, target: String) -> Int? {
+        guard let indices = matchedIndices(query: query, target: target) else { return nil }
+        guard !indices.isEmpty else { return 0 }
+
+        var total = 0
+        for (i, idx) in indices.enumerated() {
+            if i > 0 && idx == indices[i - 1] + 1 {
+                total += 6
+            } else {
+                total += 2
+            }
+            if idx == 0 { total += 4 }
         }
         return total
     }
