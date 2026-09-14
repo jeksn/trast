@@ -122,10 +122,12 @@ enum WindowCommandCodableTests {
         }
 
         t.run("Actions.fixedList") {
-            t.check(WindowAction.all.count == 5, "expected 5 actions")
+            t.check(WindowAction.all.count == 6, "expected 6 actions")
             t.check(WindowAction.all.allSatisfy({ $0.command.width == nil && $0.command.height == nil }), "actions should keep window size")
             let center = WindowAction.all.first { $0.id == "center" }
             t.check(center?.anchor == .center, "center anchor mismatch")
+            let nextDisplay = WindowAction.all.first { $0.id == "nextDisplay" }
+            t.check(nextDisplay != nil, "nextDisplay action missing")
         }
 
         t.run("DefaultSeed.resolvesBySeedIDAndName") {

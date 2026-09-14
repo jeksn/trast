@@ -125,5 +125,38 @@ enum LayoutEngineTests {
             let result = frame(width: .percent(50), height: nil, anchor: Anchor(horizontal: .keep, vertical: .keep), current: current)
             t.check(result == CGRect(x: 100, y: 200, width: 500, height: 150), "got \(result)")
         }
+
+        t.run("LayoutEngine.nextDisplayPreservesRelativePosition") {
+            let current = CGRect(x: 0, y: 0, width: 1000, height: 700)
+            let next = CGRect(x: 1000, y: 0, width: 2000, height: 1400)
+            let window = CGRect(x: 0, y: 350, width: 500, height: 350)
+            let result = LayoutEngine.frameForNextDisplay(currentFrame: window, currentUsable: current, nextUsable: next)
+            t.check(result == CGRect(x: 1000, y: 700, width: 500, height: 350), "got \(result)")
+        }
+
+        t.run("LayoutEngine.nextDisplayPreservesSize") {
+            let current = CGRect(x: 0, y: 0, width: 1000, height: 700)
+            let next = CGRect(x: 1000, y: 0, width: 1000, height: 700)
+            let window = CGRect(x: 100, y: 100, width: 300, height: 200)
+            let result = LayoutEngine.frameForNextDisplay(currentFrame: window, currentUsable: current, nextUsable: next)
+            t.check(result.width == 300, "width \(result.width)")
+            t.check(result.height == 200, "height \(result.height)")
+        }
+
+        t.run("LayoutEngine.nextDisplaySameSizeScreensPreservesPosition") {
+            let current = CGRect(x: 0, y: 0, width: 1000, height: 700)
+            let next = CGRect(x: 1000, y: 0, width: 1000, height: 700)
+            let window = CGRect(x: 250, y: 175, width: 500, height: 350)
+            let result = LayoutEngine.frameForNextDisplay(currentFrame: window, currentUsable: current, nextUsable: next)
+            t.check(result == CGRect(x: 1250, y: 175, width: 500, height: 350), "got \(result)")
+        }
+
+        t.run("LayoutEngine.nextDisplayZeroSizeCurrentFallsBackToOrigin") {
+            let current = CGRect.zero
+            let next = CGRect(x: 1000, y: 0, width: 1000, height: 700)
+            let window = CGRect(x: 0, y: 0, width: 300, height: 200)
+            let result = LayoutEngine.frameForNextDisplay(currentFrame: window, currentUsable: current, nextUsable: next)
+            t.check(result == CGRect(x: 1000, y: 0, width: 300, height: 200), "got \(result)")
+        }
     }
 }

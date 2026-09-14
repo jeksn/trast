@@ -68,6 +68,17 @@ final class AppShortcutStore: ObservableObject {
         save()
     }
 
+    func replace(with newShortcuts: [AppShortcut]) {
+        for shortcut in shortcuts {
+            KeyboardShortcuts.setShortcut(nil, for: HotkeyManager.appJumpName(for: shortcut.id))
+        }
+        shortcuts = newShortcuts
+        save()
+        for shortcut in shortcuts {
+            HotkeyManager.shared.register(shortcut)
+        }
+    }
+
     func move(from source: IndexSet, to destination: Int) {
         shortcuts.move(fromOffsets: source, toOffset: destination)
         save()

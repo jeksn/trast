@@ -12,10 +12,12 @@ Resize and move the focused window into any layout you define — halves, thirds
 - **Quick Picker** — a Spotlight-style overlay with fuzzy search over all commands and shortcuts
 - **App, URL & Folder shortcuts** — bind global hotkeys to launch/activate an app, open a URL, or open a folder or file in Finder / its default app
 - **Next Window hotkey** — cycle through the front app's windows via Accessibility, independent of the system "Move focus to next window" shortcut
+- **Next Display** — move the focused window to the next display, preserving its relative position and size
 - **Menu bar pinning** — choose exactly which commands appear in the menu bar
 - **Restore** — undo the last window change, per window
 - **Edge gap** — keep windows off the screen edges
 - **URL scheme** — apply commands from scripts, shells, or other apps
+- **Export / Import** — back up and restore all commands and shortcuts to a JSON file
 - **Launch at login**
 - **Check for Updates** — in-app updater that downloads and installs new releases from GitHub
 - Native SwiftUI menu-bar app (no Dock icon, ~zero footprint)
@@ -57,10 +59,10 @@ Re-grant Accessibility one last time — after that, rebuilds keep the permissio
 ## Usage
 
 - **Menu bar icon** — lists the commands you've pinned (toggle per command in Settings)
-- **Quick Picker** — fuzzy-search all commands; ↑↓ to navigate, Return to apply, Esc to close
+- **Quick Picker** — fuzzy-search all commands; results are grouped into Commands, Actions, and Shortcuts; ↑↓ to navigate, Return to apply, Esc to close
 - **Settings → Commands** — add, duplicate, delete, and edit window commands: name, hotkey, size, anchor, offsets, pinning, with a live preview of the resulting frame
 - **Settings → Shortcuts** — add shortcuts of three kinds (App, URL/Link, Folder/File), each with its own global hotkey; apps are chosen from a scanned list, folders/files from an Open panel
-- **Settings → General** — edge gap, picker/restore hotkeys, **Next Window** hotkey, **actions** (Center, Move Left/Right/Up/Down — parameterless, size-preserving), launch at login, Accessibility status
+- **Settings → General** — edge gap, picker/restore hotkeys, **Next Window** hotkey, **actions** (Center, Move Left/Right/Up/Down, Next Display — parameterless, size-preserving), export/import configuration, launch at login, Accessibility status
 
 ### URL scheme
 
@@ -112,7 +114,7 @@ Scripts/dev.sh               # debug build + relaunch app
 Scripts/package_app.sh       # release build + .app bundle
 ```
 
-Built with Swift Package Manager only — no Xcode project needed. See [AGENTS.md](AGENTS.md) for architecture notes and platform gotchas.
+Built with Swift Package Manager only — no Xcode project needed. See [AGENTS.md](AGENTS.md) for architecture notes and platform gotchas, and [ROADMAP.md](ROADMAP.md) for planned features.
 
 ## Acknowledgments
 

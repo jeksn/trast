@@ -331,6 +331,14 @@ public struct WindowAction: Identifiable, Hashable {
         WindowAction(id: "moveLeft", name: "Move Left", anchor: .moveLeft, commandID: UUID(uuidString: "A1000000-0000-4000-8000-0000000000A2")!),
         WindowAction(id: "moveRight", name: "Move Right", anchor: .moveRight, commandID: UUID(uuidString: "A1000000-0000-4000-8000-0000000000A3")!),
         WindowAction(id: "moveUp", name: "Move Up", anchor: .moveUp, commandID: UUID(uuidString: "A1000000-0000-4000-8000-0000000000A4")!),
-        WindowAction(id: "moveDown", name: "Move Down", anchor: .moveDown, commandID: UUID(uuidString: "A1000000-0000-4000-8000-0000000000A5")!)
+        WindowAction(id: "moveDown", name: "Move Down", anchor: .moveDown, commandID: UUID(uuidString: "A1000000-0000-4000-8000-0000000000A5")!),
+        WindowAction(id: "nextDisplay", name: "Next Display", anchor: .center, commandID: UUID(uuidString: "A1000000-0000-4000-8000-0000000000A6")!)
     ]
+
+    public static let nextDisplay = WindowAction(
+        id: "nextDisplay",
+        name: "Next Display",
+        anchor: .center,
+        commandID: UUID(uuidString: "A1000000-0000-4000-8000-0000000000A6")!
+    )
 }

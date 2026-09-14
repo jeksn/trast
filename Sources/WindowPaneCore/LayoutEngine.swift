@@ -61,6 +61,21 @@ public enum LayoutEngine {
         return visibleFrame.insetBy(dx: gap, dy: gap)
     }
 
+    public static func frameForNextDisplay(
+        currentFrame: CGRect,
+        currentUsable: CGRect,
+        nextUsable: CGRect
+    ) -> CGRect {
+        guard currentUsable.width > 0, currentUsable.height > 0 else {
+            return CGRect(x: nextUsable.minX, y: nextUsable.minY, width: currentFrame.width, height: currentFrame.height)
+        }
+        let relX = (currentFrame.minX - currentUsable.minX) / currentUsable.width
+        let relY = (currentFrame.minY - currentUsable.minY) / currentUsable.height
+        let newX = nextUsable.minX + relX * nextUsable.width
+        let newY = nextUsable.minY + relY * nextUsable.height
+        return CGRect(x: newX, y: newY, width: currentFrame.width, height: currentFrame.height)
+    }
+
     private static func resolve(_ dimension: WindowDimension?, axisLength: CGFloat, fallback: CGFloat) -> CGFloat {
         switch dimension {
         case .percent(let value): return axisLength * value / 100

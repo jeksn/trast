@@ -19,6 +19,12 @@ final class CommandApplier {
             HUD.show("Could not read window geometry")
             return
         }
+
+        if command.id == WindowAction.nextDisplay.commandID {
+            moveToNextDisplay(target: target, currentFrame: currentFrame)
+            return
+        }
+
         guard let screen = WindowManipulator.screen(containing: currentFrame) else {
             HUD.show("Could not detect display")
             return
@@ -39,6 +45,36 @@ final class CommandApplier {
 
         if let error = WindowManipulator.setFrame(target, to: newFrame) {
             HUD.show("Could not resize window (\(error.rawValue))")
+        }
+    }
+
+    private func moveToNextDisplay(target: WindowRef, currentFrame: CGRect) {
+        guard let currentScreen = WindowManipulator.screen(containing: currentFrame) else {
+            HUD.show("Could not detect display")
+            return
+        }
+        let screens = NSScreen.screens
+        guard screens.count > 1 else {
+            HUD.show("Only one display connected")
+            return
+        }
+        guard let currentIndex = screens.firstIndex(of: currentScreen) else {
+            HUD.show("Could not detect display")
+            return
+        }
+        let nextScreen = screens[(currentIndex + 1) % screens.count]
+        let currentUsable = LayoutEngine.usableArea(in: currentScreen.visibleFrame, gap: CGFloat(AppSettings.gap))
+        let nextUsable = LayoutEngine.usableArea(in: nextScreen.visibleFrame, gap: CGFloat(AppSettings.gap))
+        let newFrame = LayoutEngine.frameForNextDisplay(
+            currentFrame: currentFrame,
+            currentUsable: currentUsable,
+            nextUsable: nextUsable
+        )
+
+        restoreStore.record(key: target.restoreKey, frame: currentFrame)
+
+        if let error = WindowManipulator.setFrame(target, to: newFrame) {
+            HUD.show("Could not move window (\(error.rawValue))")
         }
     }
 

@@ -94,6 +94,17 @@ final class CommandStore: ObservableObject {
         missing.forEach { HotkeyManager.shared.register($0) }
     }
 
+    func replace(with newCommands: [WindowCommand]) {
+        for command in commands {
+            KeyboardShortcuts.setShortcut(nil, for: HotkeyManager.name(for: command.id))
+        }
+        commands = newCommands
+        save()
+        for command in commands {
+            HotkeyManager.shared.register(command)
+        }
+    }
+
     func moveCustom(from source: IndexSet, to destination: Int) {
         guard let customStart = commands.firstIndex(where: { !$0.isDefault }) else { return }
         let fullSource = IndexSet(source.map { $0 + customStart })

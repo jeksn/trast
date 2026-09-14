@@ -36,6 +36,21 @@ enum PickerItem: Identifiable {
             }
         }
     }
+
+    var section: String {
+        switch self {
+        case .command(_, let name):
+            return name.rawValue.hasPrefix("action.") ? "Actions" : "Commands"
+        case .appShortcut:
+            return "Shortcuts"
+        }
+    }
+}
+
+struct PickerSection: Identifiable {
+    let title: String
+    let items: [PickerItem]
+    var id: String { title }
 }
 
 final class PickerViewModel: ObservableObject {
@@ -55,6 +70,14 @@ final class PickerViewModel: ObservableObject {
 
     var filtered: [PickerItem] {
         FuzzyMatch.ranked(items, query: query) { $0.title }
+    }
+
+    var sections: [PickerSection] {
+        let filtered = self.filtered
+        return ["Commands", "Actions", "Shortcuts"].compactMap { title in
+            let sectionItems = filtered.filter { $0.section == title }
+            return sectionItems.isEmpty ? nil : PickerSection(title: title, items: sectionItems)
+        }
     }
 
     func moveSelection(_ delta: Int) {

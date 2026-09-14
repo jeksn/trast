@@ -31,10 +31,21 @@ struct PickerView: View {
                 ScrollViewReader { proxy in
                     ScrollView {
                         LazyVStack(spacing: 0) {
-                            ForEach(viewModel.filtered) { item in
-                                PickerRowView(item: item, isSelected: item.id == viewModel.filtered[safe: viewModel.selectedIndex]?.id)
-                                    .id(item.id)
-                                    .onTapGesture { onSelect(item) }
+                            ForEach(viewModel.sections) { section in
+                                HStack {
+                                    Text(section.title)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .padding(.horizontal, 14)
+                                        .padding(.top, 8)
+                                        .padding(.bottom, 2)
+                                    Spacer()
+                                }
+                                ForEach(section.items) { item in
+                                    PickerRowView(item: item, isSelected: item.id == viewModel.filtered[safe: viewModel.selectedIndex]?.id)
+                                        .id(item.id)
+                                        .onTapGesture { onSelect(item) }
+                                }
                             }
                         }
                         .padding(.vertical, 4)
