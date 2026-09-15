@@ -1,5 +1,6 @@
 import WindowPaneCore
 import AppKit
+import KeyboardShortcuts
 import SwiftUI
 
 final class PickerController: NSObject, NSWindowDelegate {
@@ -39,7 +40,20 @@ final class PickerController: NSObject, NSWindowDelegate {
         items.append(contentsOf: AppShortcutStore.shared.validShortcuts.map { shortcut in
             .appShortcut(shortcut, hotkeyName: HotkeyManager.appJumpName(for: shortcut.id))
         })
+        items.append(contentsOf: installedAppItems())
         return items
+    }
+
+    private func installedAppItems() -> [PickerItem] {
+        let appShortcuts = AppShortcutStore.shared.validShortcuts.filter { $0.kind == .app }
+        let existingBundleIDs = Set(appShortcuts.compactMap { $0.bundleIdentifier })
+        let existingPaths = Set(appShortcuts.compactMap { $0.bundleURL?.path })
+
+        return AppScanner.cachedApps().compactMap { app in
+            if let bid = app.bundleIdentifier, existingBundleIDs.contains(bid) { return nil }
+            if existingPaths.contains(app.bundleURL.path) { return nil }
+            return PickerItem.installedApp(app, hotkeyName: KeyboardShortcuts.Name("installedApp.\(app.id)"))
+        }
     }
 
     func close() {
@@ -55,6 +69,18 @@ final class PickerController: NSObject, NSWindowDelegate {
         case .appShortcut(let shortcut, _):
             close()
             AppShortcutStore.shared.activate(shortcut.id)
+        case .installedApp(let app, _):
+            close()
+            let configuration = NSWorkspace.OpenConfiguration()
+            configuration.activates = true
+            configuration.hides = false
+            NSWorkspace.shared.openApplication(at: app.bundleURL, configuration: configuration) { runningApp, error in
+                if let error {
+                    Task { @MainActor in HUD.show(error.localizedDescription) }
+                    return
+                }
+                runningApp?.activate(options: [.activateAllWindows])
+            }
         }
     }
 

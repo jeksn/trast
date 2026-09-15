@@ -1,10 +1,12 @@
 import Foundation
 import KeyboardShortcuts
 import WindowPaneCore
+import AppKit
 
 enum PickerItem: Identifiable {
     case command(WindowCommand, hotkeyName: KeyboardShortcuts.Name)
     case appShortcut(AppShortcut, hotkeyName: KeyboardShortcuts.Name)
+    case installedApp(AppChooserItem, hotkeyName: KeyboardShortcuts.Name)
 
     var id: String { hotkeyName.rawValue }
 
@@ -14,12 +16,14 @@ enum PickerItem: Identifiable {
             return command.name
         case .appShortcut(let shortcut, _):
             return shortcut.name
+        case .installedApp(let app, _):
+            return app.name
         }
     }
 
     var hotkeyName: KeyboardShortcuts.Name {
         switch self {
-        case .command(_, let name), .appShortcut(_, let name):
+        case .command(_, let name), .appShortcut(_, let name), .installedApp(_, let name):
             return name
         }
     }
@@ -34,6 +38,17 @@ enum PickerItem: Identifiable {
             case .url: return "link"
             case .folder: return "folder"
             }
+        case .installedApp:
+            return "app"
+        }
+    }
+
+    var iconImage: NSImage? {
+        switch self {
+        case .installedApp(let app, _):
+            return app.icon
+        case .command, .appShortcut:
+            return nil
         }
     }
 
@@ -43,6 +58,8 @@ enum PickerItem: Identifiable {
             return name.rawValue.hasPrefix("action.") ? "Actions" : "Commands"
         case .appShortcut:
             return "Shortcuts"
+        case .installedApp:
+            return "Applications"
         }
     }
 }
@@ -85,7 +102,7 @@ final class PickerViewModel: ObservableObject {
 
     var sections: [PickerSection] {
         let filtered = self.filtered
-        return ["Commands", "Actions", "Shortcuts"].compactMap { title in
+        return ["Commands", "Actions", "Shortcuts", "Applications"].compactMap { title in
             let sectionItems = filtered.filter { $0.section == title }
             return sectionItems.isEmpty ? nil : PickerSection(title: title, items: sectionItems)
         }
