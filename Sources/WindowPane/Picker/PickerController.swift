@@ -169,6 +169,13 @@ final class PickerController: NSObject, NSWindowDelegate {
         guard keyMonitor == nil else { return }
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self, let panel = self.panel, panel.isKeyWindow else { return event }
+
+            if event.modifierFlags.contains(.command), event.keyCode == 43 {
+                self.close()
+                self.openSettingsWindow()
+                return nil
+            }
+
             switch event.keyCode {
             case 125:
                 self.viewModel.moveSelection(1)
