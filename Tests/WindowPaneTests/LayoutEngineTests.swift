@@ -158,5 +158,53 @@ enum LayoutEngineTests {
             let result = LayoutEngine.frameForNextDisplay(currentFrame: window, currentUsable: current, nextUsable: next)
             t.check(result == CGRect(x: 1000, y: 0, width: 300, height: 200), "got \(result)")
         }
+
+        func frameWithGap(
+            width: WindowDimension?,
+            height: WindowDimension?,
+            anchor: Anchor,
+            gap: CGFloat,
+            offsetX: WindowDimension = .percent(0),
+            offsetY: WindowDimension = .percent(0),
+            usable: CGRect? = nil,
+            current: CGRect = .zero
+        ) -> CGRect {
+            LayoutEngine.frame(for: LayoutEngine.Request(
+                usableArea: usable ?? area,
+                currentFrame: current,
+                width: width,
+                height: height,
+                anchor: anchor,
+                offsetX: offsetX,
+                offsetY: offsetY,
+                interGap: gap
+            ))
+        }
+
+        t.run("LayoutEngine.interGapLeftHalf") {
+            let result = frameWithGap(width: .percent(50), height: .percent(100), anchor: .topLeft, gap: 10)
+            t.check(result == CGRect(x: 0, y: 0, width: 490, height: 700), "got \(result)")
+        }
+
+        t.run("LayoutEngine.interGapRightHalf") {
+            let result = frameWithGap(width: .percent(50), height: .percent(100), anchor: .topRight, gap: 10)
+            t.check(result == CGRect(x: 510, y: 0, width: 490, height: 700), "got \(result)")
+        }
+
+        t.run("LayoutEngine.interGapCenter") {
+            let result = frameWithGap(width: .percent(50), height: .percent(50), anchor: .center, gap: 10)
+            t.check(result == CGRect(x: 255, y: 180, width: 490, height: 340), "got \(result)")
+        }
+
+        t.run("LayoutEngine.interGapKeepAnchorNoShrink") {
+            let current = CGRect(x: 100, y: 200, width: 300, height: 150)
+            let result = frameWithGap(width: nil, height: nil, anchor: .moveLeft, gap: 10, current: current)
+            t.check(result == CGRect(x: 0, y: 200, width: 300, height: 150), "keep anchor should not shrink with gap")
+        }
+
+        t.run("LayoutEngine.interGapZeroMatchesNoGap") {
+            let result = frameWithGap(width: .percent(50), height: .percent(100), anchor: .topLeft, gap: 0)
+            t.check(result == CGRect(x: 0, y: 0, width: 500, height: 700), "zero gap should match no-gap behavior")
+        }
     }
 }

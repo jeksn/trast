@@ -19,13 +19,14 @@ struct GeneralSettingsView: View {
         Form {
             Section {
                 KeyboardShortcuts.Recorder("Launcher:", name: HotkeyManager.openLauncher)
-                Slider(value: $launcherOpacity, in: 0.3...1.0) {
+                Slider(value: $launcherOpacity, in: 0.3...1.0, step: 0.05) {
                     Text("Transparency")
                 } minimumValueLabel: {
                     Image(systemName: "circle.dashed")
                 } maximumValueLabel: {
                     Image(systemName: "circle.fill")
                 }
+                .tint(.accentColor)
             } header: {
                 Text("Launcher")
             } footer: {
