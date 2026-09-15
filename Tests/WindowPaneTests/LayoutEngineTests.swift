@@ -206,5 +206,29 @@ enum LayoutEngineTests {
             let result = frameWithGap(width: .percent(50), height: .percent(100), anchor: .topLeft, gap: 0)
             t.check(result == CGRect(x: 0, y: 0, width: 500, height: 700), "zero gap should match no-gap behavior")
         }
+
+        t.run("LayoutEngine.interGapTopLeftQuarter") {
+            let result = frameWithGap(width: .percent(50), height: .percent(50), anchor: .topLeft, gap: 10)
+            t.check(result == CGRect(x: 0, y: 355, width: 495, height: 345), "got \(result)")
+        }
+
+        t.run("LayoutEngine.interGapBottomLeftQuarter") {
+            let result = frameWithGap(width: .percent(50), height: .percent(50), anchor: .bottomLeft, gap: 10)
+            t.check(result == CGRect(x: 0, y: 0, width: 495, height: 345), "got \(result)")
+        }
+
+        t.run("LayoutEngine.interGapVerticalGapBetweenQuarters") {
+            let top = frameWithGap(width: .percent(50), height: .percent(50), anchor: .topLeft, gap: 10)
+            let bottom = frameWithGap(width: .percent(50), height: .percent(50), anchor: .bottomLeft, gap: 10)
+            let gapBetween = top.minY - bottom.maxY
+            t.check(gapBetween == 10, "vertical gap between top and bottom quarters should be 10, got \(gapBetween)")
+        }
+
+        t.run("LayoutEngine.interGapHorizontalGapBetweenQuarters") {
+            let left = frameWithGap(width: .percent(50), height: .percent(50), anchor: .topLeft, gap: 10)
+            let right = frameWithGap(width: .percent(50), height: .percent(50), anchor: .topRight, gap: 10)
+            let gapBetween = right.minX - left.maxX
+            t.check(gapBetween == 10, "horizontal gap between left and right quarters should be 10, got \(gapBetween)")
+        }
     }
 }
