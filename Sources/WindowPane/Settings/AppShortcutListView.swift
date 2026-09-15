@@ -7,47 +7,69 @@ struct AppShortcutListView: View {
     @State private var selectionID: UUID?
 
     var body: some View {
-        NavigationSplitView {
+        HSplitView {
             List(selection: $selectionID) {
-                Section {
-                    ForEach(store.shortcuts) { shortcut in
-                        row(for: shortcut)
+                let apps = store.shortcuts.filter { $0.kind == .app }
+                let urls = store.shortcuts.filter { $0.kind == .url }
+                let folders = store.shortcuts.filter { $0.kind == .folder }
+
+                if !apps.isEmpty {
+                    Section("Apps") {
+                        ForEach(apps) { shortcut in
+                            row(for: shortcut)
+                        }
                     }
-                    .onMove { store.move(from: $0, to: $1) }
+                }
+                if !urls.isEmpty {
+                    Section("URLs") {
+                        ForEach(urls) { shortcut in
+                            row(for: shortcut)
+                        }
+                    }
+                }
+                if !folders.isEmpty {
+                    Section("Folders") {
+                        ForEach(folders) { shortcut in
+                            row(for: shortcut)
+                        }
+                    }
                 }
             }
             .listStyle(.sidebar)
-            .navigationSplitViewColumnWidth(min: 220, ideal: 260, max: 320)
-            .toolbar {
-                ToolbarItem {
-                    HStack(spacing: 8) {
-                        Button {
-                            let shortcut = store.add(AppShortcut())
-                            selectionID = shortcut.id
-                        } label: {
-                            Image(systemName: "plus")
-                        }
-                        .help("Add shortcut")
-                        Button {
-                            duplicateSelection()
-                        } label: {
-                            Image(systemName: "doc.on.doc")
-                        }
-                        .disabled(selectionID == nil)
-                        .help("Duplicate shortcut")
+            .frame(minWidth: 220, idealWidth: 260, maxWidth: 320)
+
+            Group {
+                if let selectionID, let binding = store.binding(for: selectionID) {
+                    AppShortcutEditorView(shortcut: binding) {
+                        store.remove(binding.wrappedValue)
+                        self.selectionID = nil
                     }
+                } else {
+                    Text("Select a shortcut")
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
-        } detail: {
-            if let selectionID, let binding = store.binding(for: selectionID) {
-                AppShortcutEditorView(shortcut: binding) {
-                    store.remove(binding.wrappedValue)
-                    self.selectionID = nil
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        let shortcut = store.add(AppShortcut())
+                        selectionID = shortcut.id
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    .help("Add shortcut")
                 }
-            } else {
-                Text("Select a shortcut")
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        duplicateSelection()
+                    } label: {
+                        Image(systemName: "doc.on.doc")
+                    }
+                    .disabled(selectionID == nil)
+                    .help("Duplicate shortcut")
+                }
             }
         }
     }
