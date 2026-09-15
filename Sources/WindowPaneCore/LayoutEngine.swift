@@ -42,10 +42,12 @@ public enum LayoutEngine {
         let isFullWidth = rawWidth >= area.width
         let isFullHeight = rawHeight >= area.height
 
+        let halfGap = gap / 2
+
         let adjustedWidth: CGFloat
         switch request.anchor.horizontal {
         case .left, .right, .center:
-            adjustedWidth = (isFullWidth || request.width == nil) ? rawWidth : max(0, rawWidth - gap)
+            adjustedWidth = (isFullWidth || request.width == nil) ? rawWidth : max(0, rawWidth - halfGap)
         case .keep:
             adjustedWidth = rawWidth
         }
@@ -53,7 +55,7 @@ public enum LayoutEngine {
         let adjustedHeight: CGFloat
         switch request.anchor.vertical {
         case .top, .bottom, .center:
-            adjustedHeight = (isFullHeight || request.height == nil) ? rawHeight : max(0, rawHeight - gap)
+            adjustedHeight = (isFullHeight || request.height == nil) ? rawHeight : max(0, rawHeight - halfGap)
         case .keep:
             adjustedHeight = rawHeight
         }

@@ -183,17 +183,17 @@ enum LayoutEngineTests {
 
         t.run("LayoutEngine.interGapLeftHalf") {
             let result = frameWithGap(width: .percent(50), height: .percent(100), anchor: .topLeft, gap: 10)
-            t.check(result == CGRect(x: 0, y: 0, width: 490, height: 700), "got \(result)")
+            t.check(result == CGRect(x: 0, y: 0, width: 495, height: 700), "got \(result)")
         }
 
         t.run("LayoutEngine.interGapRightHalf") {
             let result = frameWithGap(width: .percent(50), height: .percent(100), anchor: .topRight, gap: 10)
-            t.check(result == CGRect(x: 510, y: 0, width: 490, height: 700), "got \(result)")
+            t.check(result == CGRect(x: 505, y: 0, width: 495, height: 700), "got \(result)")
         }
 
         t.run("LayoutEngine.interGapCenter") {
             let result = frameWithGap(width: .percent(50), height: .percent(50), anchor: .center, gap: 10)
-            t.check(result == CGRect(x: 255, y: 180, width: 490, height: 340), "got \(result)")
+            t.check(result == CGRect(x: 252.5, y: 177.5, width: 495, height: 345), "got \(result)")
         }
 
         t.run("LayoutEngine.interGapKeepAnchorNoShrink") {
