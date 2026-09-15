@@ -5,3 +5,7 @@ dist/
 .DS_Store
 .swiftpm
 Scripts/codesign-identity
+
+MONETIZATION.md
+MONETIZATION_PLAN.md
+GO_TO_MARKET.md
