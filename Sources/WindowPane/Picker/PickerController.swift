@@ -2,6 +2,11 @@ import WindowPaneCore
 import AppKit
 import KeyboardShortcuts
 import SwiftUI
+import Combine
+
+extension Notification.Name {
+    static let openSettings = Notification.Name("WindowPaneOpenSettings")
+}
 
 final class PickerController: NSObject, NSWindowDelegate {
     static let shared = PickerController()
@@ -10,6 +15,7 @@ final class PickerController: NSObject, NSWindowDelegate {
     private let viewModel = PickerViewModel()
     private var target: WindowRef?
     private var keyMonitor: Any?
+    private var resizeCancellable: AnyCancellable?
 
     func toggle() {
         if panel?.isVisible == true {
@@ -25,7 +31,7 @@ final class PickerController: NSObject, NSWindowDelegate {
         viewModel.reset()
 
         let panel = ensurePanel()
-        position(panel)
+        resizePanelToFit()
         panel.makeKeyAndOrderFront(nil)
     }
 
@@ -41,6 +47,7 @@ final class PickerController: NSObject, NSWindowDelegate {
             .appShortcut(shortcut, hotkeyName: HotkeyManager.appJumpName(for: shortcut.id))
         })
         items.append(contentsOf: installedAppItems())
+        items.append(contentsOf: PickerAction.allCases.map { .pickerAction($0) })
         return items
     }
 
@@ -81,6 +88,18 @@ final class PickerController: NSObject, NSWindowDelegate {
                 }
                 runningApp?.activate(options: [.activateAllWindows])
             }
+        case .pickerAction(let action):
+            close()
+            switch action {
+            case .settings:
+                openSettingsWindow()
+            case .clipboardHistory:
+                ClipboardController.shared.show()
+            case .checkForUpdates:
+                UpdateChecker.checkForUpdates()
+            case .quit:
+                NSApp.terminate(nil)
+            }
         }
     }
 
@@ -88,7 +107,7 @@ final class PickerController: NSObject, NSWindowDelegate {
         if let panel { return panel }
 
         let panel = PickerPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 560, height: 380),
+            contentRect: NSRect(x: 0, y: 0, width: 640, height: 400),
             styleMask: [.titled, .fullSizeContentView, .nonactivatingPanel],
             backing: .buffered,
             defer: false
@@ -104,17 +123,39 @@ final class PickerController: NSObject, NSWindowDelegate {
         panel.level = .floating
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         panel.delegate = self
-        panel.contentView = NSHostingView(
+
+        let hostingView = NSHostingView(
             rootView: PickerView(viewModel: viewModel) { [weak self] item in
                 self?.handle(item)
             }
         )
+        hostingView.translatesAutoresizingMaskIntoConstraints = false
+        panel.contentView = hostingView
+
         self.panel = panel
         installKeyMonitor()
+        observeContentChanges()
         return panel
     }
 
-    private func position(_ panel: NSPanel) {
+    private func observeContentChanges() {
+        resizeCancellable = viewModel.objectWillChange.sink { [weak self] _ in
+            DispatchQueue.main.async {
+                self?.resizePanelToFit()
+            }
+        }
+    }
+
+    private func resizePanelToFit() {
+        guard let panel, let hostingView = panel.contentView as? NSHostingView<PickerView> else { return }
+        let fittingSize = hostingView.fittingSize
+        var height = min(fittingSize.height, 440)
+        height = max(height, 52)
+        panel.setContentSize(CGSize(width: 640, height: height))
+        reposition(panel)
+    }
+
+    private func reposition(_ panel: NSPanel) {
         let mouse = NSEvent.mouseLocation
         let screen = NSScreen.screens.first { $0.frame.contains(mouse) } ?? NSScreen.main
         guard let screen else { return }
@@ -151,6 +192,12 @@ final class PickerController: NSObject, NSWindowDelegate {
 
     func windowDidResignKey(_ notification: Notification) {
         close()
+    }
+
+    private func openSettingsWindow() {
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(name: .openSettings, object: nil)
+        }
     }
 }
 

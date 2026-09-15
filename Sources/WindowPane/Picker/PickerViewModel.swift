@@ -3,12 +3,47 @@ import KeyboardShortcuts
 import WindowPaneCore
 import AppKit
 
+enum PickerAction: String, CaseIterable, Identifiable {
+    case settings
+    case clipboardHistory
+    case checkForUpdates
+    case quit
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .settings: return "Settings"
+        case .clipboardHistory: return "Clipboard History"
+        case .checkForUpdates: return "Check for Updates"
+        case .quit: return "Quit WindowPane"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .settings: return "gearshape"
+        case .clipboardHistory: return "clipboard"
+        case .checkForUpdates: return "arrow.triangle.2.circlecircle"
+        case .quit: return "power"
+        }
+    }
+}
+
 enum PickerItem: Identifiable {
     case command(WindowCommand, hotkeyName: KeyboardShortcuts.Name)
     case appShortcut(AppShortcut, hotkeyName: KeyboardShortcuts.Name)
     case installedApp(AppChooserItem, hotkeyName: KeyboardShortcuts.Name)
+    case pickerAction(PickerAction)
 
-    var id: String { hotkeyName.rawValue }
+    var id: String {
+        switch self {
+        case .command(_, let name), .appShortcut(_, let name), .installedApp(_, let name):
+            return name.rawValue
+        case .pickerAction(let action):
+            return "pickerAction.\(action.rawValue)"
+        }
+    }
 
     var title: String {
         switch self {
@@ -18,13 +53,17 @@ enum PickerItem: Identifiable {
             return shortcut.name
         case .installedApp(let app, _):
             return app.name
+        case .pickerAction(let action):
+            return action.title
         }
     }
 
-    var hotkeyName: KeyboardShortcuts.Name {
+    var hotkeyName: KeyboardShortcuts.Name? {
         switch self {
         case .command(_, let name), .appShortcut(_, let name), .installedApp(_, let name):
             return name
+        case .pickerAction:
+            return nil
         }
     }
 
@@ -40,6 +79,8 @@ enum PickerItem: Identifiable {
             }
         case .installedApp:
             return "app"
+        case .pickerAction(let action):
+            return action.icon
         }
     }
 
@@ -47,7 +88,7 @@ enum PickerItem: Identifiable {
         switch self {
         case .installedApp(let app, _):
             return app.icon
-        case .command, .appShortcut:
+        case .command, .appShortcut, .pickerAction:
             return nil
         }
     }
@@ -60,6 +101,8 @@ enum PickerItem: Identifiable {
             return "Shortcuts"
         case .installedApp:
             return "Applications"
+        case .pickerAction:
+            return "WindowPane"
         }
     }
 }
@@ -102,7 +145,7 @@ final class PickerViewModel: ObservableObject {
 
     var sections: [PickerSection] {
         let filtered = self.filtered
-        return ["Commands", "Actions", "Shortcuts", "Applications"].compactMap { title in
+        return ["Commands", "Actions", "Shortcuts", "Applications", "WindowPane"].compactMap { title in
             let sectionItems = filtered.filter { $0.section == title }
             return sectionItems.isEmpty ? nil : PickerSection(title: title, items: sectionItems)
         }
