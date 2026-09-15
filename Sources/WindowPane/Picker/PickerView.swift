@@ -58,8 +58,8 @@ struct PickerView: View {
             }
         }
         .frame(width: 640)
-        .background(.regularMaterial)
-        .ignoresSafeArea(edges: .top)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .ignoresSafeArea(edges: .all)
         .onAppear { isFocused = true }
         .onChange(of: viewModel.focusToken) { _ in isFocused = true }
         .onExitCommand { PickerController.shared.close() }
