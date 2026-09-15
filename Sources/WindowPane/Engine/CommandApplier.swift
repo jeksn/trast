@@ -38,8 +38,7 @@ final class CommandApplier {
             height: command.height,
             anchor: command.anchor,
             offsetX: command.offsetX,
-            offsetY: command.offsetY,
-            interGap: CGFloat(AppSettings.gap)
+            offsetY: command.offsetY
         ))
 
         restoreStore.record(key: target.restoreKey, frame: currentFrame)
