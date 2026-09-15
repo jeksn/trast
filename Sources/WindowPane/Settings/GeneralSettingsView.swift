@@ -9,6 +9,7 @@ import CoreGraphics
 struct GeneralSettingsView: View {
     @AppStorage(AppSettings.autoCheckUpdatesKey) private var autoCheckUpdates: Bool = true
     @AppStorage(AppSettings.snippetsEnabledKey) private var snippetsEnabled: Bool = false
+    @AppStorage(AppSettings.launcherOpacityKey) private var launcherOpacity: Double = 0.85
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var isTrusted = Accessibility.isTrusted
     @State private var inputMonitoringGranted = false
@@ -18,8 +19,15 @@ struct GeneralSettingsView: View {
         Form {
             Section {
                 KeyboardShortcuts.Recorder("Launcher:", name: HotkeyManager.openLauncher)
+                Slider(value: $launcherOpacity, in: 0.3...1.0) {
+                    Text("Transparency")
+                } minimumValueLabel: {
+                    Image(systemName: "circle.dashed")
+                } maximumValueLabel: {
+                    Image(systemName: "circle.fill")
+                }
             } header: {
-                Text("Global Hotkey")
+                Text("Launcher")
             } footer: {
                 Text("Press this shortcut anywhere to open the Launcher. Use it to launch apps, run commands, and access all WindowPane features.")
             }

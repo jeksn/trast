@@ -5,6 +5,7 @@ import KeyboardShortcuts
 struct LauncherView: View {
     @ObservedObject var viewModel: LauncherViewModel
     let onSelect: (LauncherItem) -> Void
+    @AppStorage(AppSettings.launcherOpacityKey) private var opacity: Double = 0.85
 
     @FocusState private var isFocused: Bool
 
@@ -58,7 +59,11 @@ struct LauncherView: View {
             }
         }
         .frame(width: 640)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(.regularMaterial)
+                .opacity(opacity)
+        )
         .ignoresSafeArea(edges: .all)
         .onAppear { isFocused = true }
         .onChange(of: viewModel.focusToken) { _ in isFocused = true }
