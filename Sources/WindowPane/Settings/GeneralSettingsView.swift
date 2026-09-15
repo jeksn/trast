@@ -7,7 +7,6 @@ import AppKit
 import CoreGraphics
 
 struct GeneralSettingsView: View {
-    @AppStorage(AppSettings.gapKey) private var gap: Double = 0
     @AppStorage(AppSettings.autoCheckUpdatesKey) private var autoCheckUpdates: Bool = true
     @AppStorage(AppSettings.snippetsEnabledKey) private var snippetsEnabled: Bool = false
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
@@ -23,36 +22,6 @@ struct GeneralSettingsView: View {
                 Text("Global Hotkey")
             } footer: {
                 Text("Press this shortcut anywhere to open the Launcher. Use it to launch apps, run commands, and access all WindowPane features.")
-            }
-
-            Section("Window Hotkeys") {
-                KeyboardShortcuts.Recorder("Clipboard History:", name: HotkeyManager.openClipboard)
-                KeyboardShortcuts.Recorder("Restore Previous Size:", name: HotkeyManager.restore)
-                KeyboardShortcuts.Recorder("Next Window:", name: HotkeyManager.nextWindow)
-            }
-
-            Section {
-                ForEach(WindowAction.all) { action in
-                    KeyboardShortcuts.Recorder("\(action.name):", name: HotkeyManager.actionName(action.id))
-                }
-            } header: {
-                Text("Actions")
-            } footer: {
-                Text("Parameterless actions — they keep the window's size and only change its position. Also available in the Launcher.")
-            }
-
-            Section {
-                Picker("Edge gap", selection: $gap) {
-                    Text("Small").tag(10.0)
-                    Text("Medium").tag(20.0)
-                    Text("Large").tag(40.0)
-                    Text("Extra Large").tag(60.0)
-                }
-                .pickerStyle(.segmented)
-            } header: {
-                Text("Window Sizing")
-            } footer: {
-                Text("Spacing between windows and screen edges.")
             }
 
             Section {

@@ -27,7 +27,7 @@ struct SnippetListView: View {
                 }
             }
             .listStyle(.sidebar)
-            .frame(minWidth: 220, idealWidth: 260, maxWidth: 320)
+            .frame(width: 260)
 
             Group {
                 if let selectionID, let binding = store.binding(for: selectionID) {
