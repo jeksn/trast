@@ -2,9 +2,9 @@ import WindowPaneCore
 import SwiftUI
 import KeyboardShortcuts
 
-struct PickerView: View {
-    @ObservedObject var viewModel: PickerViewModel
-    let onSelect: (PickerItem) -> Void
+struct LauncherView: View {
+    @ObservedObject var viewModel: LauncherViewModel
+    let onSelect: (LauncherItem) -> Void
 
     @FocusState private var isFocused: Bool
 
@@ -40,7 +40,7 @@ struct PickerView: View {
                                     }
                                 }
                                 ForEach(section.items) { item in
-                                    PickerRowView(item: item, isSelected: item.id == viewModel.filtered[safe: viewModel.selectedIndex]?.id, query: viewModel.query)
+                                    LauncherRowView(item: item, isSelected: item.id == viewModel.filtered[safe: viewModel.selectedIndex]?.id, query: viewModel.query)
                                         .id(item.id)
                                         .onTapGesture { onSelect(item) }
                                 }
@@ -62,7 +62,7 @@ struct PickerView: View {
         .ignoresSafeArea(edges: .all)
         .onAppear { isFocused = true }
         .onChange(of: viewModel.focusToken) { _ in isFocused = true }
-        .onExitCommand { PickerController.shared.close() }
+        .onExitCommand { LauncherController.shared.close() }
     }
 
     private var shouldShowSectionHeader: Bool {
@@ -70,8 +70,8 @@ struct PickerView: View {
     }
 }
 
-struct PickerRowView: View {
-    let item: PickerItem
+struct LauncherRowView: View {
+    let item: LauncherItem
     let isSelected: Bool
     let query: String
 

@@ -29,7 +29,7 @@ struct GeneralSettingsView: View {
                 }
             }
             Section("Hotkeys") {
-                KeyboardShortcuts.Recorder("Quick Picker:", name: HotkeyManager.openPicker)
+                KeyboardShortcuts.Recorder("Launcher:", name: HotkeyManager.openLauncher)
                 KeyboardShortcuts.Recorder("Clipboard History:", name: HotkeyManager.openClipboard)
                 KeyboardShortcuts.Recorder("Restore Previous Size:", name: HotkeyManager.restore)
                 KeyboardShortcuts.Recorder("Next Window:", name: HotkeyManager.nextWindow)
@@ -41,7 +41,7 @@ struct GeneralSettingsView: View {
             } header: {
                 Text("Actions")
             } footer: {
-                Text("Parameterless actions — they keep the window's size and only change its position. Also available in the Quick Picker.")
+                Text("Parameterless actions — they keep the window's size and only change its position. Also available in the Launcher.")
             }
             Section {
                 Button("Export Configuration…") { exportConfig() }
@@ -110,7 +110,7 @@ struct GeneralSettingsView: View {
             Section("URL Scheme") {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("windowpane://apply?name=Left%20Half")
-                    Text("windowpane://picker")
+                    Text("windowpane://launcher")
                     Text("windowpane://command?position=center&relativeWidth=0.5&relativeHeight=0.5")
                 }
                 .font(.system(size: 12, design: .monospaced))

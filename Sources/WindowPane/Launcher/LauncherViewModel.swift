@@ -3,7 +3,7 @@ import KeyboardShortcuts
 import WindowPaneCore
 import AppKit
 
-enum PickerAction: String, CaseIterable, Identifiable {
+enum LauncherAction: String, CaseIterable, Identifiable {
     case settings
     case clipboardHistory
     case checkForUpdates
@@ -30,18 +30,18 @@ enum PickerAction: String, CaseIterable, Identifiable {
     }
 }
 
-enum PickerItem: Identifiable {
+enum LauncherItem: Identifiable {
     case command(WindowCommand, hotkeyName: KeyboardShortcuts.Name)
     case appShortcut(AppShortcut, hotkeyName: KeyboardShortcuts.Name)
     case installedApp(AppChooserItem, hotkeyName: KeyboardShortcuts.Name)
-    case pickerAction(PickerAction)
+    case launcherAction(LauncherAction)
 
     var id: String {
         switch self {
         case .command(_, let name), .appShortcut(_, let name), .installedApp(_, let name):
             return name.rawValue
-        case .pickerAction(let action):
-            return "pickerAction.\(action.rawValue)"
+        case .launcherAction(let action):
+            return "launcherAction.\(action.rawValue)"
         }
     }
 
@@ -53,7 +53,7 @@ enum PickerItem: Identifiable {
             return shortcut.name
         case .installedApp(let app, _):
             return app.name
-        case .pickerAction(let action):
+        case .launcherAction(let action):
             return action.title
         }
     }
@@ -62,7 +62,7 @@ enum PickerItem: Identifiable {
         switch self {
         case .command(_, let name), .appShortcut(_, let name), .installedApp(_, let name):
             return name
-        case .pickerAction:
+        case .launcherAction:
             return nil
         }
     }
@@ -79,7 +79,7 @@ enum PickerItem: Identifiable {
             }
         case .installedApp:
             return "app"
-        case .pickerAction(let action):
+        case .launcherAction(let action):
             return action.icon
         }
     }
@@ -88,7 +88,7 @@ enum PickerItem: Identifiable {
         switch self {
         case .installedApp(let app, _):
             return app.icon
-        case .command, .appShortcut, .pickerAction:
+        case .command, .appShortcut, .launcherAction:
             return nil
         }
     }
@@ -101,26 +101,26 @@ enum PickerItem: Identifiable {
             return "Shortcuts"
         case .installedApp:
             return "Applications"
-        case .pickerAction:
+        case .launcherAction:
             return "WindowPane"
         }
     }
 }
 
-struct PickerSection: Identifiable {
+struct LauncherSection: Identifiable {
     let title: String
-    let items: [PickerItem]
+    let items: [LauncherItem]
     var id: String { title }
 }
 
-final class PickerViewModel: ObservableObject {
+final class LauncherViewModel: ObservableObject {
     @Published var query = "" {
         didSet { selectedIndex = 0 }
     }
     @Published var selectedIndex = 0
     @Published var focusToken = UUID()
 
-    var items: [PickerItem] = []
+    var items: [LauncherItem] = []
 
     func reset() {
         query = ""
@@ -128,17 +128,17 @@ final class PickerViewModel: ObservableObject {
         focusToken = UUID()
     }
 
-    var filtered: [PickerItem] {
+    var filtered: [LauncherItem] {
         let trimmed = query.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return [] }
         return FuzzyMatch.ranked(items, query: query) { $0.title }
     }
 
-    var sections: [PickerSection] {
+    var sections: [LauncherSection] {
         let filtered = self.filtered
         return ["Commands", "Actions", "Shortcuts", "Applications", "WindowPane"].compactMap { title in
             let sectionItems = filtered.filter { $0.section == title }
-            return sectionItems.isEmpty ? nil : PickerSection(title: title, items: sectionItems)
+            return sectionItems.isEmpty ? nil : LauncherSection(title: title, items: sectionItems)
         }
     }
 
@@ -148,7 +148,7 @@ final class PickerViewModel: ObservableObject {
         selectedIndex = (selectedIndex + delta + count) % count
     }
 
-    func selectedItem() -> PickerItem? {
+    func selectedItem() -> LauncherItem? {
         filtered[safe: selectedIndex]
     }
 }

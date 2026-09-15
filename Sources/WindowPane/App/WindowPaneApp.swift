@@ -68,8 +68,8 @@ struct MenuContent: View {
             }
 
             Divider()
-            Button("Quick Picker…") {
-                PickerController.shared.show()
+            Button("Launcher…") {
+                LauncherController.shared.show()
             }
             Button("Settings…") {
                 openSettingsWindow()

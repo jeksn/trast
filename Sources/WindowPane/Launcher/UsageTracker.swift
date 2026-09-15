@@ -7,7 +7,7 @@ final class UsageTracker {
         var entries: [String: Date]
     }
 
-    private static let key = "pickerUsageLog"
+    private static let key = "launcherUsageLog"
     private var entries: [String: Date]
 
     private init() {

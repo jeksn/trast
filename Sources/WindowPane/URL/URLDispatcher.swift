@@ -12,8 +12,8 @@ enum URLDispatcher {
                     return
                 }
                 CommandApplier.shared.apply(command)
-            case .picker:
-                PickerController.shared.show()
+            case .launcher:
+                LauncherController.shared.show()
             case .ephemeral(let command):
                 CommandApplier.shared.apply(command)
             }

@@ -8,11 +8,11 @@ extension Notification.Name {
     static let openSettings = Notification.Name("WindowPaneOpenSettings")
 }
 
-final class PickerController: NSObject, NSWindowDelegate {
-    static let shared = PickerController()
+final class LauncherController: NSObject, NSWindowDelegate {
+    static let shared = LauncherController()
 
-    private var panel: PickerPanel?
-    private let viewModel = PickerViewModel()
+    private var panel: LauncherPanel?
+    private let viewModel = LauncherViewModel()
     private var target: WindowRef?
     private var keyMonitor: Any?
     private var resizeCancellable: AnyCancellable?
@@ -35,8 +35,8 @@ final class PickerController: NSObject, NSWindowDelegate {
         panel.makeKeyAndOrderFront(nil)
     }
 
-    private func makeItems() -> [PickerItem] {
-        var items: [PickerItem] = []
+    private func makeItems() -> [LauncherItem] {
+        var items: [LauncherItem] = []
         items.append(contentsOf: CommandStore.shared.commands.map { command in
             .command(command, hotkeyName: HotkeyManager.name(for: command.id))
         })
@@ -47,11 +47,11 @@ final class PickerController: NSObject, NSWindowDelegate {
             .appShortcut(shortcut, hotkeyName: HotkeyManager.appJumpName(for: shortcut.id))
         })
         items.append(contentsOf: installedAppItems())
-        items.append(contentsOf: PickerAction.allCases.map { .pickerAction($0) })
+        items.append(contentsOf: LauncherAction.allCases.map { .launcherAction($0) })
         return items
     }
 
-    private func installedAppItems() -> [PickerItem] {
+    private func installedAppItems() -> [LauncherItem] {
         let appShortcuts = AppShortcutStore.shared.validShortcuts.filter { $0.kind == .app }
         let existingBundleIDs = Set(appShortcuts.compactMap { $0.bundleIdentifier })
         let existingPaths = Set(appShortcuts.compactMap { $0.bundleURL?.path })
@@ -59,7 +59,7 @@ final class PickerController: NSObject, NSWindowDelegate {
         return AppScanner.cachedApps().compactMap { app in
             if let bid = app.bundleIdentifier, existingBundleIDs.contains(bid) { return nil }
             if existingPaths.contains(app.bundleURL.path) { return nil }
-            return PickerItem.installedApp(app, hotkeyName: KeyboardShortcuts.Name("installedApp.\(app.id)"))
+            return LauncherItem.installedApp(app, hotkeyName: KeyboardShortcuts.Name("installedApp.\(app.id)"))
         }
     }
 
@@ -67,7 +67,7 @@ final class PickerController: NSObject, NSWindowDelegate {
         panel?.orderOut(nil)
     }
 
-    private func handle(_ item: PickerItem) {
+    private func handle(_ item: LauncherItem) {
         UsageTracker.shared.record(item.id)
         switch item {
         case .command(let command, _):
@@ -88,7 +88,7 @@ final class PickerController: NSObject, NSWindowDelegate {
                 }
                 runningApp?.activate(options: [.activateAllWindows])
             }
-        case .pickerAction(let action):
+        case .launcherAction(let action):
             close()
             switch action {
             case .settings:
@@ -103,10 +103,10 @@ final class PickerController: NSObject, NSWindowDelegate {
         }
     }
 
-    private func ensurePanel() -> PickerPanel {
+    private func ensurePanel() -> LauncherPanel {
         if let panel { return panel }
 
-        let panel = PickerPanel(
+        let panel = LauncherPanel(
             contentRect: NSRect(x: 0, y: 0, width: 640, height: 400),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
@@ -123,7 +123,7 @@ final class PickerController: NSObject, NSWindowDelegate {
         panel.hasShadow = true
 
         let hostingView = NSHostingView(
-            rootView: PickerView(viewModel: viewModel) { [weak self] item in
+            rootView: LauncherView(viewModel: viewModel) { [weak self] item in
                 self?.handle(item)
             }
         )
@@ -145,7 +145,7 @@ final class PickerController: NSObject, NSWindowDelegate {
     }
 
     private func resizePanelToFit() {
-        guard let panel, let hostingView = panel.contentView as? NSHostingView<PickerView> else { return }
+        guard let panel, let hostingView = panel.contentView as? NSHostingView<LauncherView> else { return }
         let fittingSize = hostingView.fittingSize
         var height = min(fittingSize.height, 440)
         height = max(height, 52)
@@ -206,6 +206,6 @@ final class PickerController: NSObject, NSWindowDelegate {
     }
 }
 
-final class PickerPanel: NSPanel {
+final class LauncherPanel: NSPanel {
     override var canBecomeKey: Bool { true }
 }
