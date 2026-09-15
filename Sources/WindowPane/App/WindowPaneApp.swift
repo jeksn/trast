@@ -7,12 +7,14 @@ struct WindowPaneApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var store = CommandStore.shared
     @StateObject private var appShortcutStore = AppShortcutStore.shared
+    @StateObject private var snippetStore = SnippetStore.shared
 
     var body: some Scene {
         MenuBarExtra {
             MenuContent()
                 .environmentObject(store)
                 .environmentObject(appShortcutStore)
+                .environmentObject(snippetStore)
         } label: {
             Image(nsImage: StatusBarIcon.image)
         }
@@ -22,6 +24,7 @@ struct WindowPaneApp: App {
             SettingsView()
                 .environmentObject(store)
                 .environmentObject(appShortcutStore)
+                .environmentObject(snippetStore)
         }
         .windowResizability(.contentSize)
     }
@@ -30,6 +33,7 @@ struct WindowPaneApp: App {
 struct MenuContent: View {
     @EnvironmentObject private var store: CommandStore
     @EnvironmentObject private var appShortcutStore: AppShortcutStore
+    @EnvironmentObject private var snippetStore: SnippetStore
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
@@ -76,6 +80,22 @@ struct MenuContent: View {
         }
         Button("Clipboard History…") {
             ClipboardController.shared.show()
+        }
+        if !snippetStore.snippets.isEmpty {
+            Divider()
+            Menu("Snippets") {
+                ForEach(snippetStore.validSnippets) { snippet in
+                    Toggle(snippet.name, isOn: Binding(
+                        get: { snippet.enabled },
+                        set: { newValue in
+                            var updated = snippet
+                            updated.enabled = newValue
+                            snippetStore.update(updated)
+                            SnippetExpander.shared.restart()
+                        }
+                    ))
+                }
+            }
         }
         Divider()
         Button("Check for Updates…") {
