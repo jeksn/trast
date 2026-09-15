@@ -74,6 +74,9 @@ struct MenuContent: View {
         Button("Quick Picker…") {
             PickerController.shared.show()
         }
+        Button("Clipboard History…") {
+            ClipboardController.shared.show()
+        }
         Divider()
         Button("Check for Updates…") {
             UpdateChecker.checkForUpdates()

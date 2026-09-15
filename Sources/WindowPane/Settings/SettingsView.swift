@@ -7,6 +7,8 @@ struct SettingsView: View {
                 .tabItem { Label("Commands", systemImage: "rectangle.split.2x2") }
             AppShortcutListView()
                 .tabItem { Label("Shortcuts", systemImage: "arrow.right.square") }
+            ClipboardSettingsView()
+                .tabItem { Label("Clipboard", systemImage: "clipboard") }
             GeneralSettingsView()
                 .tabItem { Label("General", systemImage: "gearshape") }
         }
