@@ -20,6 +20,20 @@ struct AppChooserItem: Identifiable, Hashable {
 }
 
 enum AppScanner {
+    private static let cacheQueue = DispatchQueue(label: "windowpane.appscanner.cache")
+    private static var cached: [AppChooserItem] = []
+
+    static func cachedApps() -> [AppChooserItem] {
+        cacheQueue.sync { cached }
+    }
+
+    static func refresh() {
+        DispatchQueue.global(qos: .utility).async {
+            let apps = installedApps()
+            cacheQueue.sync { cached = apps }
+        }
+    }
+
     static func installedApps() -> [AppChooserItem] {
         var seen = Set<String>()
         var items: [AppChooserItem] = []

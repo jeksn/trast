@@ -4,12 +4,15 @@ import ServiceManagement
 import UniformTypeIdentifiers
 import WindowPaneCore
 import AppKit
+import CoreGraphics
 
 struct GeneralSettingsView: View {
     @AppStorage(AppSettings.gapKey) private var gap: Double = 0
     @AppStorage(AppSettings.autoCheckUpdatesKey) private var autoCheckUpdates: Bool = true
+    @AppStorage(AppSettings.snippetsEnabledKey) private var snippetsEnabled: Bool = false
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var isTrusted = Accessibility.isTrusted
+    @State private var inputMonitoringGranted = false
     @State private var importError = false
 
     var body: some View {
@@ -27,6 +30,7 @@ struct GeneralSettingsView: View {
             }
             Section("Hotkeys") {
                 KeyboardShortcuts.Recorder("Quick Picker:", name: HotkeyManager.openPicker)
+                KeyboardShortcuts.Recorder("Clipboard History:", name: HotkeyManager.openClipboard)
                 KeyboardShortcuts.Recorder("Restore Previous Size:", name: HotkeyManager.restore)
                 KeyboardShortcuts.Recorder("Next Window:", name: HotkeyManager.nextWindow)
             }
@@ -46,6 +50,34 @@ struct GeneralSettingsView: View {
                 Text("Backup")
             } footer: {
                 Text("Saves or restores all commands and shortcuts to a JSON file. Hotkey bindings are not included — reassign them after importing on a new machine.")
+            }
+            Section {
+                Toggle("Enable snippet expansion", isOn: $snippetsEnabled)
+                    .onChange(of: snippetsEnabled) { enabled in
+                        if enabled {
+                            SnippetExpander.shared.start()
+                            inputMonitoringGranted = CGPreflightListenEventAccess()
+                        } else {
+                            SnippetExpander.shared.stop()
+                        }
+                    }
+                if snippetsEnabled && !inputMonitoringGranted {
+                    HStack {
+                        Label(
+                            "Input Monitoring permission required",
+                            systemImage: "exclamationmark.triangle.fill"
+                        )
+                        .foregroundStyle(Color.orange)
+                        Spacer()
+                        Button("Open System Settings") {
+                            Accessibility.openSystemSettings()
+                        }
+                    }
+                }
+            } header: {
+                Text("Snippets")
+            } footer: {
+                Text("Type a snippet keyword anywhere to expand it. Requires Input Monitoring permission (prompted on first enable) and Accessibility for text injection.")
             }
             Section("System") {
                 LabeledContent("Version", value: UpdateChecker.currentVersion)
@@ -87,7 +119,10 @@ struct GeneralSettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .onAppear { isTrusted = Accessibility.isTrusted }
+        .onAppear {
+            isTrusted = Accessibility.isTrusted
+            inputMonitoringGranted = CGPreflightListenEventAccess()
+        }
         .alert("Import Failed", isPresented: $importError) {
             Button("OK") { }
         } message: {

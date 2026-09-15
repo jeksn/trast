@@ -76,9 +76,16 @@ struct PickerRowView: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            Image(systemName: item.icon)
-                .foregroundStyle(.secondary)
-                .frame(width: 18)
+            if let nsImage = item.iconImage {
+                Image(nsImage: nsImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 18, height: 18)
+            } else {
+                Image(systemName: item.icon)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 18)
+            }
             highlightedTitle
                 .lineLimit(1)
             Spacer()

@@ -3,6 +3,9 @@ import WindowPaneCore
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
+        AppScanner.refresh()
+        ClipboardMonitor.shared.start()
+        SnippetExpander.shared.start()
         HotkeyManager.shared.registerAll(for: CommandStore.shared)
         HotkeyManager.shared.registerAllAppJumps(for: AppShortcutStore.shared)
 

@@ -8,6 +8,7 @@ final class HotkeyManager {
     static let restore = KeyboardShortcuts.Name("restoreLastGeometry")
     static let openPicker = KeyboardShortcuts.Name("openQuickPicker")
     static let nextWindow = KeyboardShortcuts.Name("nextWindow")
+    static let openClipboard = KeyboardShortcuts.Name("openClipboard")
 
     private var registeredCommandIDs = Set<UUID>()
     private var registeredAppShortcutIDs = Set<UUID>()
@@ -28,6 +29,9 @@ final class HotkeyManager {
         }
         KeyboardShortcuts.onKeyUp(for: Self.nextWindow) {
             WindowCycler.cycleNext()
+        }
+        KeyboardShortcuts.onKeyUp(for: Self.openClipboard) {
+            ClipboardController.shared.toggle()
         }
         for action in WindowAction.all {
             register(action)
