@@ -17,23 +17,20 @@ struct GeneralSettingsView: View {
 
     var body: some View {
         Form {
-            Section("Window Sizing") {
-                HStack {
-                    Text("Edge gap")
-                    Spacer()
-                    TextField("Gap", value: $gap, format: .number)
-                        .frame(width: 76)
-                        .multilineTextAlignment(.trailing)
-                    Text("px")
-                        .foregroundStyle(.secondary)
-                }
-            }
-            Section("Hotkeys") {
+            Section {
                 KeyboardShortcuts.Recorder("Launcher:", name: HotkeyManager.openLauncher)
+            } header: {
+                Text("Global Hotkey")
+            } footer: {
+                Text("Press this shortcut anywhere to open the Launcher. Use it to launch apps, run commands, and access all WindowPane features.")
+            }
+
+            Section("Window Hotkeys") {
                 KeyboardShortcuts.Recorder("Clipboard History:", name: HotkeyManager.openClipboard)
                 KeyboardShortcuts.Recorder("Restore Previous Size:", name: HotkeyManager.restore)
                 KeyboardShortcuts.Recorder("Next Window:", name: HotkeyManager.nextWindow)
             }
+
             Section {
                 ForEach(WindowAction.all) { action in
                     KeyboardShortcuts.Recorder("\(action.name):", name: HotkeyManager.actionName(action.id))
@@ -43,14 +40,21 @@ struct GeneralSettingsView: View {
             } footer: {
                 Text("Parameterless actions — they keep the window's size and only change its position. Also available in the Launcher.")
             }
+
             Section {
-                Button("Export Configuration…") { exportConfig() }
-                Button("Import Configuration…") { importConfig() }
+                Picker("Edge gap", selection: $gap) {
+                    Text("Small").tag(10.0)
+                    Text("Medium").tag(20.0)
+                    Text("Large").tag(40.0)
+                    Text("Extra Large").tag(60.0)
+                }
+                .pickerStyle(.segmented)
             } header: {
-                Text("Backup")
+                Text("Window Sizing")
             } footer: {
-                Text("Saves or restores all commands and shortcuts to a JSON file. Hotkey bindings are not included — reassign them after importing on a new machine.")
+                Text("Spacing between windows and screen edges.")
             }
+
             Section {
                 Toggle("Enable snippet expansion", isOn: $snippetsEnabled)
                     .onChange(of: snippetsEnabled) { enabled in
@@ -79,6 +83,16 @@ struct GeneralSettingsView: View {
             } footer: {
                 Text("Type a snippet keyword anywhere to expand it. Requires Input Monitoring permission (prompted on first enable) and Accessibility for text injection.")
             }
+
+            Section {
+                Button("Export Configuration…") { exportConfig() }
+                Button("Import Configuration…") { importConfig() }
+            } header: {
+                Text("Backup")
+            } footer: {
+                Text("Saves or restores all commands and shortcuts to a JSON file. Hotkey bindings are not included — reassign them after importing on a new machine.")
+            }
+
             Section("System") {
                 LabeledContent("Version", value: UpdateChecker.currentVersion)
                 Toggle("Launch at login", isOn: $launchAtLogin)
@@ -107,6 +121,7 @@ struct GeneralSettingsView: View {
                     }
                 }
             }
+
             Section("URL Scheme") {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("windowpane://apply?name=Left%20Half")

@@ -19,7 +19,7 @@ struct WindowPaneApp: App {
         }
         .menuBarExtraStyle(.menu)
 
-        Window("WindowPane Settings", id: "settings") {
+        Window("WindowPane", id: "settings") {
             SettingsView()
                 .environmentObject(store)
                 .environmentObject(appShortcutStore)
@@ -89,7 +89,7 @@ struct MenuContent: View {
         DispatchQueue.main.async {
             NSApp.activate(ignoringOtherApps: true)
             NSApp.windows
-                .first { $0.title == "WindowPane Settings" }?
+                .first { $0.title == "WindowPane" }?
                 .makeKeyAndOrderFront(nil)
         }
     }
