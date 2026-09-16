@@ -28,6 +28,10 @@ enum LauncherAction: String, CaseIterable, Identifiable {
         case .quit: return "power"
         }
     }
+
+    static var windowPaneActions: [LauncherAction] {
+        allCases.filter { $0 != .clipboardHistory }
+    }
 }
 
 enum LauncherItem: Identifiable {
@@ -265,7 +269,9 @@ final class LauncherViewModel: ObservableObject {
     private func recentItems(for category: Category) -> [LauncherItem] {
         switch category {
         case .clipboard:
-            return ClipboardStore.shared.items.prefix(10).map { .clipboardEntry($0) }
+            var entries: [LauncherItem] = [.launcherAction(.clipboardHistory)]
+            entries.append(contentsOf: ClipboardStore.shared.items.prefix(10).map { .clipboardEntry($0) })
+            return entries
         case .snippets:
             return SnippetStore.shared.validSnippets.map { .snippetEntry($0) }
         default:

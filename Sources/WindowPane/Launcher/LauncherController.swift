@@ -47,7 +47,7 @@ final class LauncherController: NSObject, NSWindowDelegate {
             .appShortcut(shortcut, hotkeyName: HotkeyManager.appJumpName(for: shortcut.id))
         })
         items.append(contentsOf: installedAppItems())
-        items.append(contentsOf: LauncherAction.allCases.map { .launcherAction($0) })
+        items.append(contentsOf: LauncherAction.windowPaneActions.map { .launcherAction($0) })
         items.append(contentsOf: SnippetStore.shared.validSnippets.map { .snippetEntry($0) })
         return items
     }

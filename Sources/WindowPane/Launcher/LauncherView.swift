@@ -23,26 +23,22 @@ struct LauncherView: View {
             .padding(.top, 14)
             .padding(.bottom, 8)
 
-            HStack(spacing: 6) {
+            HStack(spacing: 4) {
                 ForEach(LauncherViewModel.Category.visibleCases, id: \.self) { category in
                     Button {
                         viewModel.selectCategory(category)
                     } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: category.icon)
-                                .font(.system(size: 10))
-                            Text(category.label)
-                                .font(.system(size: 12))
-                        }
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(
-                            RoundedRectangle(cornerRadius: 6)
-                                .fill(category == viewModel.selectedCategory ? Color.accentColor.opacity(0.25) : Color.clear)
-                        )
-                        .foregroundStyle(category == viewModel.selectedCategory ? .primary : .secondary)
+                        Image(systemName: category.icon)
+                            .font(.system(size: 13))
+                            .frame(width: 28, height: 28)
+                            .background(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .fill(category == viewModel.selectedCategory ? Color.accentColor.opacity(0.25) : Color.clear)
+                            )
+                            .foregroundStyle(category == viewModel.selectedCategory ? .primary : .secondary)
                     }
                     .buttonStyle(.plain)
+                    .help(category.label)
                 }
                 Spacer()
             }
@@ -98,7 +94,7 @@ struct LauncherView: View {
     }
 
     private var shouldShowSectionHeader: Bool {
-        viewModel.sections.count > 1
+        viewModel.selectedCategory == .all && viewModel.sections.count > 1
     }
 }
 
