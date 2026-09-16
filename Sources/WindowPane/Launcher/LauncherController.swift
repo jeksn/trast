@@ -43,7 +43,7 @@ final class LauncherController: NSObject, NSWindowDelegate {
         items.append(contentsOf: WindowAction.all.map { action in
             .command(action.command, hotkeyName: HotkeyManager.actionName(action.id))
         })
-        items.append(contentsOf: AppShortcutStore.shared.validShortcuts.map { shortcut in
+        items.append(contentsOf: AppShortcutStore.shared.validShortcuts.filter { $0.kind != .app }.map { shortcut in
             .appShortcut(shortcut, hotkeyName: HotkeyManager.appJumpName(for: shortcut.id))
         })
         items.append(contentsOf: installedAppItems())
@@ -53,13 +53,23 @@ final class LauncherController: NSObject, NSWindowDelegate {
 
     private func installedAppItems() -> [LauncherItem] {
         let appShortcuts = AppShortcutStore.shared.validShortcuts.filter { $0.kind == .app }
-        let existingBundleIDs = Set(appShortcuts.compactMap { $0.bundleIdentifier })
-        let existingPaths = Set(appShortcuts.compactMap { $0.bundleURL?.path })
+        let shortcutByBundleID = Dictionary(uniqueKeysWithValues: appShortcuts.compactMap { s in
+            s.bundleIdentifier.map { ($0, s) }
+        })
+        let shortcutByPath = Dictionary(uniqueKeysWithValues: appShortcuts.compactMap { s in
+            s.bundleURL.map { ($0.path, s) }
+        })
 
-        return AppScanner.cachedApps().compactMap { app in
-            if let bid = app.bundleIdentifier, existingBundleIDs.contains(bid) { return nil }
-            if existingPaths.contains(app.bundleURL.path) { return nil }
-            return LauncherItem.installedApp(app, hotkeyName: KeyboardShortcuts.Name("installedApp.\(app.id)"))
+        return AppScanner.cachedApps().map { app in
+            let existingShortcut = shortcutByBundleID[app.bundleIdentifier ?? ""]
+                ?? shortcutByPath[app.bundleURL.path]
+            let hotkeyName: KeyboardShortcuts.Name
+            if let existingShortcut {
+                hotkeyName = HotkeyManager.appJumpName(for: existingShortcut.id)
+            } else {
+                hotkeyName = KeyboardShortcuts.Name("installedApp.\(app.id)")
+            }
+            return LauncherItem.installedApp(app, hotkeyName: hotkeyName)
         }
     }
 

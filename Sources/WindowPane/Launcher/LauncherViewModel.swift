@@ -119,7 +119,6 @@ final class LauncherViewModel: ObservableObject {
         case commands
         case shortcuts
         case applications
-        case clipboard
         case windowPane
 
         var label: String {
@@ -128,7 +127,6 @@ final class LauncherViewModel: ObservableObject {
             case .commands: return "Commands"
             case .shortcuts: return "Shortcuts"
             case .applications: return "Apps"
-            case .clipboard: return "Clipboard"
             case .windowPane: return "WindowPane"
             }
         }
@@ -139,7 +137,6 @@ final class LauncherViewModel: ObservableObject {
             case .commands: return "macwindow"
             case .shortcuts: return "arrow.right.square"
             case .applications: return "app"
-            case .clipboard: return "clipboard"
             case .windowPane: return "gearshape"
             }
         }
@@ -198,8 +195,6 @@ final class LauncherViewModel: ObservableObject {
             return items.filter { $0.section == "Shortcuts" }
         case .applications:
             return items.filter { $0.section == "Applications" }
-        case .clipboard:
-            return items.filter { $0.section == "WindowPane" && $0.title == "Clipboard History" }
         case .windowPane:
             return items.filter { $0.section == "WindowPane" }
         }
