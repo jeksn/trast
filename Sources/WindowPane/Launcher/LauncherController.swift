@@ -249,7 +249,14 @@ final class LauncherController: NSObject, NSWindowDelegate {
 
     private func openSettingsWindow() {
         DispatchQueue.main.async {
+            NSApp.activate(ignoringOtherApps: true)
             NotificationCenter.default.post(name: .openSettings, object: nil)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                NSApp.activate(ignoringOtherApps: true)
+                NSApp.windows
+                    .first { $0.title == "WindowPane" }?
+                    .makeKeyAndOrderFront(nil)
+            }
         }
     }
 
