@@ -111,13 +111,24 @@ struct SnippetEditorView: View {
             } header: {
                 Text("Content")
             } footer: {
-                Text("Type the keyword anywhere on the system to expand it into the content text. The keyword must be preceded by a word boundary (space, line break, or start of text).")
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Type the keyword anywhere on the system to expand it into the content text.")
+                    Text("Template variables:")
+                    Text("  {{clipboard}} — current clipboard text")
+                    Text("  {{date}} — today (yyyy-MM-dd)")
+                    Text("  {{date -1}} — yesterday, {{date +7}} — next week")
+                    Text("  {{date:MMMM d, yyyy}} — custom date format")
+                    Text("  {{time}} — current time (HH:mm:ss)")
+                }
+                .font(.caption)
             }
 
             Section {
                 Button("Test Expansion") {
+                    let clipboard = NSPasteboard.general.string(forType: .string) ?? ""
+                    let resolved = SnippetTemplate.resolve(snippet.content, clipboardContent: clipboard)
                     NSPasteboard.general.clearContents()
-                    NSPasteboard.general.setString(snippet.content, forType: .string)
+                    NSPasteboard.general.setString(resolved, forType: .string)
                 }
                 .disabled(!snippet.isValid)
             } header: {

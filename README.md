@@ -19,12 +19,34 @@ Resize and move the focused window into any layout you define — halves, thirds
 
 ### Launcher
 
-- **Spotlight-style launcher** — press a global hotkey to open a search bar; results appear below as you type, grouped into Commands, Actions, Shortcuts, Applications, and WindowPane sections
-- **App launching** — search and launch any installed app from the Launcher, with real app icons
-- **Clipboard history** — a searchable overlay of recent clipboard items (text, images, files); select to paste into the frontmost app; pin items to keep them
-- **Snippet expansion** — type a keyword anywhere on the system to expand it into predefined text; requires Input Monitoring permission
-- **Launcher transparency** — adjust the panel opacity from the General settings
+- **Spotlight-style launcher** — press a global hotkey to open a search bar; results appear below as you type. Search across commands, actions, shortcuts, installed apps, clipboard history, and snippets all at once
+- **Tab navigation** — icon-based tabs for All, Commands, Shortcuts, Apps, Clipboard, Snippets, and WindowPane. Click to switch, or Tab/Shift+Tab to cycle. Hold Cmd to see numbered badges and press Cmd+1..7 to jump directly to a tab
+- **Recent activity** — switching to a tab without typing shows recently used items from that category, so the launcher feels alive instead of empty
+- **App launching** — search and launch any installed app with real app icons; apps with shortcuts show their hotkey
+- **Clipboard history in launcher** — the Clipboard tab shows the latest 10 clipboard items directly in the launcher; select to paste into the frontmost app, or select Clipboard History to open the full overlay
+- **Snippets in launcher** — the Snippets tab shows all enabled snippets; select to copy the expanded text to the clipboard
+- **Launcher transparency** — adjust the panel opacity from the General settings (slider with 5% steps)
 - **Cmd+,** — open Settings directly from the Launcher
+
+### Snippets
+
+- **Text expansion** — type a keyword anywhere on the system and it expands into predefined text. Requires Input Monitoring permission (prompted on first enable in Settings → General)
+- **Template variables** — insert dynamic content into your snippets using `{{variable}}` syntax:
+
+| Variable | Result | Example |
+| --- | --- | --- |
+| `{{clipboard}}` | Current clipboard text | `{{clipboard}}` pastes whatever you copied |
+| `{{date}}` | Today's date (yyyy-MM-dd) | `{{date}}` → 2026-09-16 |
+| `{{date -1}}` | Yesterday | `{{date -1}}` → 2026-09-15 |
+| `{{date +7}}` | One week ahead | `{{date +7}}` → 2026-09-23 |
+| `{{date:MMMM d, yyyy}}` | Custom date format | `{{date:MMMM d, yyyy}}` → September 16, 2026 |
+| `{{date -1:yyyy/MM/dd}}` | Offset with custom format | `{{date -1:yyyy/MM/dd}}` → 2026/09/15 |
+| `{{time}}` | Current time (HH:mm:ss) | `{{time}}` → 14:32:05 |
+
+  Date formats use standard ICU/DateFormatter patterns. Unknown variables (e.g. `{{unknown}}`) pass through as-is.
+
+- **Snippet management** — create, edit, enable/disable, and delete snippets in Settings → Snippets. Each snippet has a name, a keyword (what you type to trigger it), and the content (with optional template variables)
+- **Launcher integration** — snippets appear in the Snippets tab and in All search results; selecting from the launcher copies the resolved text to the clipboard
 
 ### Other
 
@@ -72,19 +94,19 @@ Re-grant Accessibility one last time — after that, rebuilds keep the permissio
 ## Usage
 
 - **Menu bar icon** — lists the commands you've pinned (toggle per command in Settings), plus Launcher and Settings
-- **Launcher** — press the global hotkey (configurable in Settings → General); type to search commands, actions, shortcuts, installed apps, and WindowPane actions; ↑↓ to navigate, Return to select, Esc to close, Cmd+, to open Settings
-- **Clipboard History** — press the clipboard hotkey (configurable in Settings → Window); search and select to paste into the frontmost app
+- **Launcher** — press the global hotkey (configurable in Settings → General); type to search everything, or Tab to switch between categories (All, Commands, Shortcuts, Apps, Clipboard, Snippets, WindowPane); ↑↓ to navigate, Return to select, Esc to close, Cmd+, to open Settings, Cmd+1..7 to jump to a tab
+- **Clipboard History** — press the clipboard hotkey (configurable in Settings → Window), or Tab to Clipboard in the Launcher; search and select to paste into the frontmost app
 - **Settings** — sidebar navigation: General, Window, Commands, Shortcuts, Snippets, Clipboard
 
 ### Settings
 
 | Section | Contents |
 | --- | --- |
-| **General** | Launcher hotkey, transparency slider, snippet expansion toggle, export/import, launch at login, update checks, Accessibility status, URL scheme reference |
+| **General** | Launcher hotkey, transparency slider, Clipboard/Snippets tab toggles, snippet expansion toggle, export/import, launch at login, update checks, Accessibility status, URL scheme reference |
 | **Window** | Clipboard History / Restore / Next Window hotkeys, action hotkeys (Center, Move Left/Right/Up/Down, Next Display), edge gap presets |
 | **Commands** | Add, duplicate, delete, and edit window commands: name, hotkey, size, anchor, offsets, pinning, with a live preview |
 | **Shortcuts** | Add shortcuts of three kinds (App, URL/Link, Folder/File), each with its own global hotkey; grouped by type |
-| **Snippets** | Create text snippets with keywords; toggle individual snippets on/off; grouped by enabled/disabled |
+| **Snippets** | Create text snippets with keywords and template variables; toggle individual snippets on/off; grouped by enabled/disabled |
 | **Clipboard** | Monitor toggle, history size, auto-clear interval, clear history |
 
 ### URL scheme
@@ -128,7 +150,7 @@ Scripts/update.sh
 - Windows are moved and resized through the macOS Accessibility API (`AXUIElement`)
 - The Launcher is a borderless, non-activating `NSPanel` that stays floating across all spaces; it captures the frontmost window on open so window commands target the right app
 - Clipboard history polls `NSPasteboard.general.changeCount` every 0.5s and stores items in a versioned JSON file
-- Snippet expansion uses a listen-only `CGEvent` tap to detect keywords and injects expansion text via `CGEvent`
+- Snippet expansion uses a listen-only `CGEvent` tap to detect keywords and injects expansion text via `CGEvent`. Template variables (`{{date}}`, `{{clipboard}}`, `{{time}}`) are resolved before injection
 - Commands persist in `~/Library/Application Support/WindowPane/commands.json`; app/URL/folder shortcuts in `appShortcuts.json`; clipboard history in `clipboard.json`; snippets in `snippets.json`
 
 ## Development
