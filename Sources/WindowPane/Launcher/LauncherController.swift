@@ -48,6 +48,7 @@ final class LauncherController: NSObject, NSWindowDelegate {
         })
         items.append(contentsOf: installedAppItems())
         items.append(contentsOf: LauncherAction.allCases.map { .launcherAction($0) })
+        items.append(contentsOf: SnippetStore.shared.validSnippets.map { .snippetEntry($0) })
         return items
     }
 
@@ -110,6 +111,14 @@ final class LauncherController: NSObject, NSWindowDelegate {
             case .quit:
                 NSApp.terminate(nil)
             }
+        case .clipboardEntry(let item):
+            close()
+            pasteClipboardItem(item)
+        case .snippetEntry(let snippet):
+            close()
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(snippet.content, forType: .string)
+            HUD.show("Snippet copied to clipboard")
         }
     }
 
@@ -220,6 +229,34 @@ final class LauncherController: NSObject, NSWindowDelegate {
         DispatchQueue.main.async {
             NotificationCenter.default.post(name: .openSettings, object: nil)
         }
+    }
+
+    private func pasteClipboardItem(_ item: ClipboardItem) {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+
+        switch item.kind {
+        case .text:
+            if let text = item.textContent {
+                pasteboard.setString(text, forType: .string)
+            }
+        case .image:
+            if let data = item.imageData {
+                pasteboard.setData(data, forType: .tiff)
+            }
+        case .fileURL:
+            if let url = item.fileURL {
+                pasteboard.writeObjects([url as NSURL])
+            }
+        }
+
+        let source = CGEventSource(stateID: .hidSystemState)
+        let vDown = CGEvent(keyboardEventSource: source, virtualKey: 9, keyDown: true)
+        vDown?.flags = .maskCommand
+        let vUp = CGEvent(keyboardEventSource: source, virtualKey: 9, keyDown: false)
+        vUp?.flags = .maskCommand
+        vDown?.post(tap: .cghidEventTap)
+        vUp?.post(tap: .cghidEventTap)
     }
 }
 

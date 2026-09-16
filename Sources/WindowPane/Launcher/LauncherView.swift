@@ -24,7 +24,7 @@ struct LauncherView: View {
             .padding(.bottom, 8)
 
             HStack(spacing: 6) {
-                ForEach(LauncherViewModel.Category.allCases, id: \.self) { category in
+                ForEach(LauncherViewModel.Category.visibleCases, id: \.self) { category in
                     Button {
                         viewModel.selectCategory(category)
                     } label: {
@@ -123,6 +123,12 @@ struct LauncherRowView: View {
             }
             highlightedTitle
                 .lineLimit(1)
+            if let subtitle = item.subtitle {
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
             Spacer()
             if let name = item.hotkeyName,
                let shortcut = KeyboardShortcuts.getShortcut(for: name) {

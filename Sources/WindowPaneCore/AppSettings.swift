@@ -14,6 +14,8 @@ public enum AppSettings {
     public static let clipboardEnabledKey = "clipboardMonitorEnabled"
     public static let snippetsEnabledKey = "snippetsEnabled"
     public static let launcherOpacityKey = "launcherOpacity"
+    public static let launcherClipboardTabKey = "launcherClipboardTab"
+    public static let launcherSnippetsTabKey = "launcherSnippetsTab"
 
     public static var gap: Double {
         UserDefaults.standard.double(forKey: gapKey)
@@ -34,5 +36,13 @@ public enum AppSettings {
     public static var launcherOpacity: Double {
         let value = UserDefaults.standard.double(forKey: launcherOpacityKey)
         return value > 0 ? value : 0.85
+    }
+
+    public static var launcherClipboardTab: Bool {
+        UserDefaults.standard.object(forKey: launcherClipboardTabKey) as? Bool ?? true
+    }
+
+    public static var launcherSnippetsTab: Bool {
+        UserDefaults.standard.object(forKey: launcherSnippetsTabKey) as? Bool ?? true
     }
 }

@@ -35,6 +35,8 @@ enum LauncherItem: Identifiable {
     case appShortcut(AppShortcut, hotkeyName: KeyboardShortcuts.Name)
     case installedApp(AppChooserItem, hotkeyName: KeyboardShortcuts.Name)
     case launcherAction(LauncherAction)
+    case clipboardEntry(ClipboardItem)
+    case snippetEntry(Snippet)
 
     var id: String {
         switch self {
@@ -42,6 +44,10 @@ enum LauncherItem: Identifiable {
             return name.rawValue
         case .launcherAction(let action):
             return "launcherAction.\(action.rawValue)"
+        case .clipboardEntry(let item):
+            return "clipboard.\(item.id.uuidString)"
+        case .snippetEntry(let snippet):
+            return "snippet.\(snippet.id.uuidString)"
         }
     }
 
@@ -55,6 +61,10 @@ enum LauncherItem: Identifiable {
             return app.name
         case .launcherAction(let action):
             return action.title
+        case .clipboardEntry(let item):
+            return item.displayName
+        case .snippetEntry(let snippet):
+            return snippet.name
         }
     }
 
@@ -62,7 +72,7 @@ enum LauncherItem: Identifiable {
         switch self {
         case .command(_, let name), .appShortcut(_, let name), .installedApp(_, let name):
             return name
-        case .launcherAction:
+        case .launcherAction, .clipboardEntry, .snippetEntry:
             return nil
         }
     }
@@ -81,6 +91,14 @@ enum LauncherItem: Identifiable {
             return "app"
         case .launcherAction(let action):
             return action.icon
+        case .clipboardEntry(let item):
+            switch item.kind {
+            case .text: return "text.alignleft"
+            case .image: return "photo"
+            case .fileURL: return "doc"
+            }
+        case .snippetEntry:
+            return "text.append"
         }
     }
 
@@ -88,7 +106,10 @@ enum LauncherItem: Identifiable {
         switch self {
         case .installedApp(let app, _):
             return app.icon
-        case .command, .appShortcut, .launcherAction:
+        case .clipboardEntry(let item):
+            guard item.kind == .image, let data = item.imageData else { return nil }
+            return NSImage(data: data)
+        case .command, .appShortcut, .launcherAction, .snippetEntry:
             return nil
         }
     }
@@ -103,6 +124,29 @@ enum LauncherItem: Identifiable {
             return "Applications"
         case .launcherAction:
             return "WindowPane"
+        case .clipboardEntry:
+            return "Clipboard"
+        case .snippetEntry:
+            return "Snippets"
+        }
+    }
+
+    var subtitle: String? {
+        switch self {
+        case .clipboardEntry(let item):
+            switch item.kind {
+            case .text:
+                let preview = item.preview
+                return preview.count > 60 ? String(preview.prefix(60)) + "..." : preview
+            case .fileURL:
+                return item.fileURL?.path
+            case .image:
+                return nil
+            }
+        case .snippetEntry(let snippet):
+            return snippet.keyword
+        default:
+            return nil
         }
     }
 }
@@ -119,6 +163,8 @@ final class LauncherViewModel: ObservableObject {
         case commands
         case shortcuts
         case applications
+        case clipboard
+        case snippets
         case windowPane
 
         var label: String {
@@ -127,6 +173,8 @@ final class LauncherViewModel: ObservableObject {
             case .commands: return "Commands"
             case .shortcuts: return "Shortcuts"
             case .applications: return "Apps"
+            case .clipboard: return "Clipboard"
+            case .snippets: return "Snippets"
             case .windowPane: return "WindowPane"
             }
         }
@@ -137,8 +185,18 @@ final class LauncherViewModel: ObservableObject {
             case .commands: return "macwindow"
             case .shortcuts: return "arrow.right.square"
             case .applications: return "app"
+            case .clipboard: return "clipboard"
+            case .snippets: return "text.append"
             case .windowPane: return "gearshape"
             }
+        }
+
+        static var visibleCases: [Category] {
+            var cases: [Category] = [.all, .commands, .shortcuts, .applications]
+            if AppSettings.launcherClipboardTab { cases.append(.clipboard) }
+            if AppSettings.launcherSnippetsTab { cases.append(.snippets) }
+            cases.append(.windowPane)
+            return cases
         }
     }
 
@@ -195,12 +253,25 @@ final class LauncherViewModel: ObservableObject {
             return items.filter { $0.section == "Shortcuts" }
         case .applications:
             return items.filter { $0.section == "Applications" }
+        case .clipboard:
+            return items.filter { $0.section == "Clipboard" }
+        case .snippets:
+            return items.filter { $0.section == "Snippets" }
         case .windowPane:
             return items.filter { $0.section == "WindowPane" }
         }
     }
 
     private func recentItems(for category: Category) -> [LauncherItem] {
+        switch category {
+        case .clipboard:
+            return ClipboardStore.shared.items.prefix(10).map { .clipboardEntry($0) }
+        case .snippets:
+            return SnippetStore.shared.validSnippets.map { .snippetEntry($0) }
+        default:
+            break
+        }
+
         let categoryItems = filterByCategory(items)
         let ids = categoryItems.map(\.id)
         let recentIDs = UsageTracker.shared.sortedByRecent(ids)
@@ -218,17 +289,17 @@ final class LauncherViewModel: ObservableObject {
     }
 
     func cycleCategory() {
-        let allCases = Category.allCases
-        guard let currentIndex = allCases.firstIndex(of: selectedCategory) else { return }
-        selectedCategory = allCases[(currentIndex + 1) % allCases.count]
+        let cases = Category.visibleCases
+        guard let currentIndex = cases.firstIndex(of: selectedCategory) else { return }
+        selectedCategory = cases[(currentIndex + 1) % cases.count]
         selectedIndex = 0
     }
 
     func cycleCategoryBackward() {
-        let allCases = Category.allCases
-        guard let currentIndex = allCases.firstIndex(of: selectedCategory) else { return }
-        let count = allCases.count
-        selectedCategory = allCases[(currentIndex - 1 + count) % count]
+        let cases = Category.visibleCases
+        guard let currentIndex = cases.firstIndex(of: selectedCategory) else { return }
+        let count = cases.count
+        selectedCategory = cases[(currentIndex - 1 + count) % count]
         selectedIndex = 0
     }
 
@@ -239,7 +310,7 @@ final class LauncherViewModel: ObservableObject {
 
     var sections: [LauncherSection] {
         let filtered = self.filtered
-        return ["Commands", "Actions", "Shortcuts", "Applications", "WindowPane"].compactMap { title in
+        return ["Commands", "Actions", "Shortcuts", "Applications", "Clipboard", "Snippets", "WindowPane"].compactMap { title in
             let sectionItems = filtered.filter { $0.section == title }
             return sectionItems.isEmpty ? nil : LauncherSection(title: title, items: sectionItems)
         }

@@ -10,6 +10,8 @@ struct GeneralSettingsView: View {
     @AppStorage(AppSettings.autoCheckUpdatesKey) private var autoCheckUpdates: Bool = true
     @AppStorage(AppSettings.snippetsEnabledKey) private var snippetsEnabled: Bool = false
     @AppStorage(AppSettings.launcherOpacityKey) private var launcherOpacity: Double = 0.85
+    @AppStorage(AppSettings.launcherClipboardTabKey) private var showClipboardTab: Bool = true
+    @AppStorage(AppSettings.launcherSnippetsTabKey) private var showSnippetsTab: Bool = true
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var isTrusted = Accessibility.isTrusted
     @State private var inputMonitoringGranted = false
@@ -27,10 +29,12 @@ struct GeneralSettingsView: View {
                     Image(systemName: "circle.fill")
                 }
                 .tint(.accentColor)
+                Toggle("Show Clipboard tab", isOn: $showClipboardTab)
+                Toggle("Show Snippets tab", isOn: $showSnippetsTab)
             } header: {
                 Text("Launcher")
             } footer: {
-                Text("Press this shortcut anywhere to open the Launcher. Use it to launch apps, run commands, and access all WindowPane features.")
+                Text("Press this shortcut anywhere to open the Launcher. The Clipboard tab shows recent clipboard history; the Snippets tab shows available text snippets. Both can be toggled on or off.")
             }
 
             Section {
