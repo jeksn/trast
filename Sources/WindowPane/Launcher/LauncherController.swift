@@ -15,6 +15,7 @@ final class LauncherController: NSObject, NSWindowDelegate {
     private let viewModel = LauncherViewModel()
     private var target: WindowRef?
     private var keyMonitor: Any?
+    private var flagsMonitor: Any?
     private var resizeCancellable: AnyCancellable?
 
     func toggle() {
@@ -49,6 +50,7 @@ final class LauncherController: NSObject, NSWindowDelegate {
         items.append(contentsOf: installedAppItems())
         items.append(contentsOf: LauncherAction.windowPaneActions.map { .launcherAction($0) })
         items.append(contentsOf: SnippetStore.shared.validSnippets.map { .snippetEntry($0) })
+        items.append(contentsOf: ClipboardStore.shared.items.prefix(20).map { .clipboardEntry($0) })
         return items
     }
 
@@ -151,6 +153,7 @@ final class LauncherController: NSObject, NSWindowDelegate {
 
         self.panel = panel
         installKeyMonitor()
+        installFlagsMonitor()
         observeContentChanges()
         return panel
     }
@@ -193,6 +196,14 @@ final class LauncherController: NSObject, NSWindowDelegate {
                 return nil
             }
 
+            if event.modifierFlags.contains(.command) {
+                let numberKeyCodes: [UInt16] = [18, 19, 20, 21, 23, 22, 26, 28, 25]
+                if let index = numberKeyCodes.firstIndex(of: event.keyCode) {
+                    self.viewModel.selectCategoryByIndex(index)
+                    return nil
+                }
+            }
+
             switch event.keyCode {
             case 48:
                 if event.modifierFlags.contains(.shift) {
@@ -218,6 +229,15 @@ final class LauncherController: NSObject, NSWindowDelegate {
             default:
                 return event
             }
+        }
+    }
+
+    private func installFlagsMonitor() {
+        guard flagsMonitor == nil else { return }
+        flagsMonitor = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
+            guard let self, let panel = self.panel, panel.isKeyWindow else { return event }
+            self.viewModel.showTabNumbers = event.modifierFlags.contains(.command)
+            return event
         }
     }
 

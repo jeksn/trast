@@ -24,18 +24,28 @@ struct LauncherView: View {
             .padding(.bottom, 8)
 
             HStack(spacing: 4) {
-                ForEach(LauncherViewModel.Category.visibleCases, id: \.self) { category in
+                ForEach(Array(LauncherViewModel.Category.visibleCases.enumerated()), id: \.element) { index, category in
                     Button {
                         viewModel.selectCategory(category)
                     } label: {
-                        Image(systemName: category.icon)
-                            .font(.system(size: 13))
-                            .frame(width: 28, height: 28)
-                            .background(
-                                RoundedRectangle(cornerRadius: 6)
-                                    .fill(category == viewModel.selectedCategory ? Color.accentColor.opacity(0.25) : Color.clear)
-                            )
-                            .foregroundStyle(category == viewModel.selectedCategory ? .primary : .secondary)
+                        ZStack(alignment: .topTrailing) {
+                            Image(systemName: category.icon)
+                                .font(.system(size: 13))
+                                .frame(width: 28, height: 28)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .fill(category == viewModel.selectedCategory ? Color.accentColor.opacity(0.25) : Color.clear)
+                                )
+                                .foregroundStyle(category == viewModel.selectedCategory ? .primary : .secondary)
+                            if viewModel.showTabNumbers {
+                                Text("\(index + 1)")
+                                    .font(.system(size: 8, weight: .bold))
+                                    .foregroundStyle(.secondary)
+                                    .padding(2)
+                                    .background(Circle().fill(Color.secondary.opacity(0.2)))
+                                    .offset(x: 6, y: -6)
+                            }
+                        }
                     }
                     .buttonStyle(.plain)
                     .help(category.label)

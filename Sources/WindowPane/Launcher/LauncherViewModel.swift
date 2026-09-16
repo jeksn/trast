@@ -222,6 +222,7 @@ final class LauncherViewModel: ObservableObject {
     }
     @Published var selectedIndex = 0
     @Published var focusToken = UUID()
+    @Published var showTabNumbers = false
 
     var items: [LauncherItem] = []
 
@@ -307,6 +308,12 @@ final class LauncherViewModel: ObservableObject {
         let count = cases.count
         selectedCategory = cases[(currentIndex - 1 + count) % count]
         selectedIndex = 0
+    }
+
+    func selectCategoryByIndex(_ index: Int) {
+        let cases = Category.visibleCases
+        guard index >= 0, index < cases.count else { return }
+        selectedCategory = cases[index]
     }
 
     func selectCategory(_ category: Category) {
