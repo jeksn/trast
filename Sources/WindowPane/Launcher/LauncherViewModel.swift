@@ -114,6 +114,48 @@ struct LauncherSection: Identifiable {
 }
 
 final class LauncherViewModel: ObservableObject {
+    enum Category: String, CaseIterable, Hashable {
+        case all
+        case commands
+        case shortcuts
+        case applications
+        case clipboard
+        case windowPane
+
+        var label: String {
+            switch self {
+            case .all: return "All"
+            case .commands: return "Commands"
+            case .shortcuts: return "Shortcuts"
+            case .applications: return "Apps"
+            case .clipboard: return "Clipboard"
+            case .windowPane: return "WindowPane"
+            }
+        }
+
+        var icon: String {
+            switch self {
+            case .all: return "magnifyingglass"
+            case .commands: return "macwindow"
+            case .shortcuts: return "arrow.right.square"
+            case .applications: return "app"
+            case .clipboard: return "clipboard"
+            case .windowPane: return "gearshape"
+            }
+        }
+    }
+
+    private static let placeholders = [
+        "What do you want to do?",
+        "Search commands, apps, and more...",
+        "Type to search...",
+        "What's next?",
+        "Search everything...",
+        "What are you looking for?",
+    ]
+
+    @Published var placeholder: String = placeholders[0]
+    @Published var selectedCategory: Category = .all
     @Published var query = "" {
         didSet { selectedIndex = 0 }
     }
@@ -123,6 +165,8 @@ final class LauncherViewModel: ObservableObject {
     var items: [LauncherItem] = []
 
     func reset() {
+        placeholder = Self.placeholders.randomElement() ?? Self.placeholders[0]
+        selectedCategory = .all
         query = ""
         selectedIndex = 0
         focusToken = UUID()
@@ -131,7 +175,41 @@ final class LauncherViewModel: ObservableObject {
     var filtered: [LauncherItem] {
         let trimmed = query.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return [] }
-        return FuzzyMatch.ranked(items, query: query) { $0.title }
+        let ranked = FuzzyMatch.ranked(items, query: query) { $0.title }
+        switch selectedCategory {
+        case .all:
+            return ranked
+        case .commands:
+            return ranked.filter { $0.section == "Commands" || $0.section == "Actions" }
+        case .shortcuts:
+            return ranked.filter { $0.section == "Shortcuts" }
+        case .applications:
+            return ranked.filter { $0.section == "Applications" }
+        case .clipboard:
+            return ranked.filter { $0.section == "WindowPane" && $0.title == "Clipboard History" }
+        case .windowPane:
+            return ranked.filter { $0.section == "WindowPane" }
+        }
+    }
+
+    func cycleCategory() {
+        let allCases = Category.allCases
+        guard let currentIndex = allCases.firstIndex(of: selectedCategory) else { return }
+        selectedCategory = allCases[(currentIndex + 1) % allCases.count]
+        selectedIndex = 0
+    }
+
+    func cycleCategoryBackward() {
+        let allCases = Category.allCases
+        guard let currentIndex = allCases.firstIndex(of: selectedCategory) else { return }
+        let count = allCases.count
+        selectedCategory = allCases[(currentIndex - 1 + count) % count]
+        selectedIndex = 0
+    }
+
+    func selectCategory(_ category: Category) {
+        selectedCategory = category
+        selectedIndex = 0
     }
 
     var sections: [LauncherSection] {

@@ -175,6 +175,13 @@ final class LauncherController: NSObject, NSWindowDelegate {
             }
 
             switch event.keyCode {
+            case 48:
+                if event.modifierFlags.contains(.shift) {
+                    self.viewModel.cycleCategoryBackward()
+                } else {
+                    self.viewModel.cycleCategory()
+                }
+                return nil
             case 125:
                 self.viewModel.moveSelection(1)
                 return nil
