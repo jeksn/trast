@@ -155,7 +155,9 @@ final class LauncherViewModel: ObservableObject {
     ]
 
     @Published var placeholder: String = placeholders[0]
-    @Published var selectedCategory: Category = .all
+    @Published var selectedCategory: Category = .all {
+        didSet { selectedIndex = 0 }
+    }
     @Published var query = "" {
         didSet { selectedIndex = 0 }
     }
@@ -174,22 +176,50 @@ final class LauncherViewModel: ObservableObject {
 
     var filtered: [LauncherItem] {
         let trimmed = query.trimmingCharacters(in: .whitespaces)
-        guard !trimmed.isEmpty else { return [] }
+
+        if trimmed.isEmpty {
+            if selectedCategory == .all {
+                return []
+            }
+            return recentItems(for: selectedCategory)
+        }
+
         let ranked = FuzzyMatch.ranked(items, query: query) { $0.title }
+        return filterByCategory(ranked)
+    }
+
+    private func filterByCategory(_ items: [LauncherItem]) -> [LauncherItem] {
         switch selectedCategory {
         case .all:
-            return ranked
+            return items
         case .commands:
-            return ranked.filter { $0.section == "Commands" || $0.section == "Actions" }
+            return items.filter { $0.section == "Commands" || $0.section == "Actions" }
         case .shortcuts:
-            return ranked.filter { $0.section == "Shortcuts" }
+            return items.filter { $0.section == "Shortcuts" }
         case .applications:
-            return ranked.filter { $0.section == "Applications" }
+            return items.filter { $0.section == "Applications" }
         case .clipboard:
-            return ranked.filter { $0.section == "WindowPane" && $0.title == "Clipboard History" }
+            return items.filter { $0.section == "WindowPane" && $0.title == "Clipboard History" }
         case .windowPane:
-            return ranked.filter { $0.section == "WindowPane" }
+            return items.filter { $0.section == "WindowPane" }
         }
+    }
+
+    private func recentItems(for category: Category) -> [LauncherItem] {
+        let categoryItems = filterByCategory(items)
+        let ids = categoryItems.map(\.id)
+        let recentIDs = UsageTracker.shared.sortedByRecent(ids)
+        let idOrder = Dictionary(uniqueKeysWithValues: recentIDs.enumerated().map { ($1, $0) })
+        let maxResults = 8
+        return categoryItems
+            .sorted { (a, b) in
+                let ia = idOrder[a.id] ?? Int.max
+                let ib = idOrder[b.id] ?? Int.max
+                if ia != ib { return ia < ib }
+                return a.title.localizedCaseInsensitiveCompare(b.title) == .orderedAscending
+            }
+            .prefix(maxResults)
+            .map { $0 }
     }
 
     func cycleCategory() {
