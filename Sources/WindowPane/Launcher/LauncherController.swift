@@ -48,7 +48,7 @@ final class LauncherController: NSObject, NSWindowDelegate {
             .appShortcut(shortcut, hotkeyName: HotkeyManager.appJumpName(for: shortcut.id))
         })
         items.append(contentsOf: installedAppItems())
-        items.append(contentsOf: LauncherAction.windowPaneActions.map { .launcherAction($0) })
+        items.append(contentsOf: LauncherAction.allCases.map { .launcherAction($0) })
         items.append(contentsOf: SnippetStore.shared.validSnippets.map { .snippetEntry($0) })
         items.append(contentsOf: ClipboardStore.shared.items.prefix(20).map { .clipboardEntry($0) })
         return items
@@ -118,8 +118,10 @@ final class LauncherController: NSObject, NSWindowDelegate {
             pasteClipboardItem(item)
         case .snippetEntry(let snippet):
             close()
+            let clipboard = NSPasteboard.general.string(forType: .string) ?? ""
+            let resolved = SnippetTemplate.resolve(snippet.content, clipboardContent: clipboard)
             NSPasteboard.general.clearContents()
-            NSPasteboard.general.setString(snippet.content, forType: .string)
+            NSPasteboard.general.setString(resolved, forType: .string)
             HUD.show("Snippet copied to clipboard")
         }
     }

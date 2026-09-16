@@ -24,7 +24,7 @@ enum LauncherAction: String, CaseIterable, Identifiable {
         switch self {
         case .settings: return "gearshape"
         case .clipboardHistory: return "clipboard"
-        case .checkForUpdates: return "arrow.triangle.2.circlecircle"
+        case .checkForUpdates: return "arrow.clockwise.circle"
         case .quit: return "power"
         }
     }
@@ -263,7 +263,10 @@ final class LauncherViewModel: ObservableObject {
         case .snippets:
             return items.filter { $0.section == "Snippets" }
         case .windowPane:
-            return items.filter { $0.section == "WindowPane" }
+            return items.filter { $0.section == "WindowPane" } .filter {
+                if case .launcherAction(.clipboardHistory) = $0 { return false }
+                return true
+            }
         }
     }
 

@@ -130,13 +130,16 @@ final class SnippetExpander {
     }
 
     private func expand(keyword: String, into expansion: String) {
+        let clipboard = NSPasteboard.general.string(forType: .string) ?? ""
+        let resolved = SnippetTemplate.resolve(expansion, clipboardContent: clipboard)
+
         let source = CGEventSource(stateID: .hidSystemState)
 
         for _ in 0..<keyword.count {
             sendBackspace(source: source)
         }
 
-        for scalar in expansion.unicodeScalars {
+        for scalar in resolved.unicodeScalars {
             injectCharacter(scalar, source: source)
         }
     }

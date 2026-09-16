@@ -9,6 +9,7 @@ FuzzyMatchTests.runAll(runner)
 VersionCompareTests.runAll(runner)
 AppShortcutCodableTests.runAll(runner)
 SnippetCodableTests.runAll(runner)
+SnippetTemplateTests.runAll(runner)
 
 print()
 print(runner.summary)
