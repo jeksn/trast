@@ -6,7 +6,7 @@ final class HotkeyManager {
     static let shared = HotkeyManager()
 
     static let restore = KeyboardShortcuts.Name("restoreLastGeometry")
-    static let openPicker = KeyboardShortcuts.Name("openQuickPicker")
+    static let openLauncher = KeyboardShortcuts.Name("openLauncher")
     static let nextWindow = KeyboardShortcuts.Name("nextWindow")
     static let openClipboard = KeyboardShortcuts.Name("openClipboard")
 
@@ -24,8 +24,8 @@ final class HotkeyManager {
         KeyboardShortcuts.onKeyUp(for: Self.restore) {
             CommandApplier.shared.restore()
         }
-        KeyboardShortcuts.onKeyUp(for: Self.openPicker) {
-            PickerController.shared.toggle()
+        KeyboardShortcuts.onKeyUp(for: Self.openLauncher) {
+            LauncherController.shared.toggle()
         }
         KeyboardShortcuts.onKeyUp(for: Self.nextWindow) {
             WindowCycler.cycleNext()

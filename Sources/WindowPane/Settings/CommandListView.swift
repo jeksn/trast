@@ -7,7 +7,7 @@ struct CommandListView: View {
     @State private var selectionID: UUID?
 
     var body: some View {
-        NavigationSplitView {
+        HSplitView {
             List(selection: $selectionID) {
                 Section("Custom") {
                     ForEach(store.customCommands) { command in
@@ -32,36 +32,39 @@ struct CommandListView: View {
                 }
             }
             .listStyle(.sidebar)
-            .navigationSplitViewColumnWidth(min: 220, ideal: 260, max: 320)
-            .toolbar {
-                ToolbarItem {
-                    HStack(spacing: 8) {
-                        Button {
-                            addCommand()
-                        } label: {
-                            Image(systemName: "plus")
-                        }
-                        .help("Add command")
-                        Button {
-                            duplicateSelection()
-                        } label: {
-                            Image(systemName: "doc.on.doc")
-                        }
-                        .disabled(selectionID == nil)
-                        .help("Duplicate command")
+            .frame(width: 260)
+
+            Group {
+                if let selectionID, let binding = store.binding(for: selectionID) {
+                    CommandEditorView(command: binding) {
+                        store.remove(binding.wrappedValue)
+                        self.selectionID = nil
                     }
+                } else {
+                    Text("Select a command")
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
-        } detail: {
-            if let selectionID, let binding = store.binding(for: selectionID) {
-                CommandEditorView(command: binding) {
-                    store.remove(binding.wrappedValue)
-                    self.selectionID = nil
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        addCommand()
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    .help("Add command")
                 }
-            } else {
-                Text("Select a command")
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        duplicateSelection()
+                    } label: {
+                        Image(systemName: "doc.on.doc")
+                    }
+                    .disabled(selectionID == nil)
+                    .help("Duplicate command")
+                }
             }
         }
     }

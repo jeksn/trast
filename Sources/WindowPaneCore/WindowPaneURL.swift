@@ -3,7 +3,7 @@ import Foundation
 public enum WindowPaneURL {
     public enum Action: Equatable {
         case apply(name: String)
-        case picker
+        case launcher
         case ephemeral(WindowCommand)
     }
 
@@ -13,8 +13,8 @@ public enum WindowPaneURL {
         let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
 
         switch host {
-        case "picker":
-            return .picker
+        case "launcher", "picker":
+            return .launcher
         case "apply":
             guard let name = items.first(where: { $0.name.lowercased() == "name" })?.value, !name.isEmpty else { return nil }
             return .apply(name: name)

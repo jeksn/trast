@@ -9,6 +9,7 @@ public enum LayoutEngine {
         public var anchor: Anchor
         public var offsetX: WindowDimension
         public var offsetY: WindowDimension
+        public var interGap: CGFloat
 
         public init(
             usableArea: CGRect,
@@ -17,7 +18,8 @@ public enum LayoutEngine {
             height: WindowDimension?,
             anchor: Anchor,
             offsetX: WindowDimension,
-            offsetY: WindowDimension
+            offsetY: WindowDimension,
+            interGap: CGFloat = 0
         ) {
             self.usableArea = usableArea
             self.currentFrame = currentFrame
@@ -26,26 +28,50 @@ public enum LayoutEngine {
             self.anchor = anchor
             self.offsetX = offsetX
             self.offsetY = offsetY
+            self.interGap = interGap
         }
     }
 
     public static func frame(for request: Request) -> CGRect {
         let area = request.usableArea
-        let width = max(0, resolve(request.width, axisLength: area.width, fallback: request.currentFrame.width))
-        let height = max(0, resolve(request.height, axisLength: area.height, fallback: request.currentFrame.height))
+        let gap = request.interGap
+
+        let rawWidth = max(0, resolve(request.width, axisLength: area.width, fallback: request.currentFrame.width))
+        let rawHeight = max(0, resolve(request.height, axisLength: area.height, fallback: request.currentFrame.height))
+
+        let isFullWidth = rawWidth >= area.width
+        let isFullHeight = rawHeight >= area.height
+
+        let halfGap = gap / 2
+
+        let adjustedWidth: CGFloat
+        switch request.anchor.horizontal {
+        case .left, .right, .center:
+            adjustedWidth = (isFullWidth || request.width == nil) ? rawWidth : max(0, rawWidth - halfGap)
+        case .keep:
+            adjustedWidth = rawWidth
+        }
+
+        let adjustedHeight: CGFloat
+        switch request.anchor.vertical {
+        case .top, .bottom, .center:
+            adjustedHeight = (isFullHeight || request.height == nil) ? rawHeight : max(0, rawHeight - halfGap)
+        case .keep:
+            adjustedHeight = rawHeight
+        }
 
         let baseX: CGFloat
         switch request.anchor.horizontal {
         case .left: baseX = area.minX
-        case .center: baseX = area.midX - width / 2
-        case .right: baseX = area.maxX - width
+        case .center: baseX = area.midX - adjustedWidth / 2
+        case .right: baseX = area.maxX - adjustedWidth
         case .keep: baseX = request.currentFrame.minX
         }
 
         let baseY: CGFloat
         switch request.anchor.vertical {
-        case .top: baseY = area.maxY - height
-        case .center: baseY = area.midY - height / 2
+        case .top: baseY = area.maxY - adjustedHeight
+        case .center: baseY = area.midY - adjustedHeight / 2
         case .bottom: baseY = area.minY
         case .keep: baseY = request.currentFrame.minY
         }
@@ -53,7 +79,7 @@ public enum LayoutEngine {
         let x = baseX + resolve(request.offsetX, axisLength: area.width, fallback: 0)
         let y = baseY - resolve(request.offsetY, axisLength: area.height, fallback: 0)
 
-        return CGRect(x: x, y: y, width: width, height: height)
+        return CGRect(x: x, y: y, width: adjustedWidth, height: adjustedHeight)
     }
 
     public static func usableArea(in visibleFrame: CGRect, gap: CGFloat) -> CGRect {

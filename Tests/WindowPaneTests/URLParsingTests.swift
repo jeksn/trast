@@ -8,8 +8,9 @@ enum URLParsingTests {
     }
 
     static func runAll(_ t: TestRunner) {
-        t.run("URLParsing.picker") {
-            t.check(parse("windowpane://picker") == .picker, "picker not parsed")
+        t.run("URLParsing.launcher") {
+            t.check(parse("windowpane://launcher") == .launcher, "launcher not parsed")
+            t.check(parse("windowpane://picker") == .launcher, "legacy picker should still work")
         }
 
         t.run("URLParsing.applyByName") {
@@ -21,8 +22,8 @@ enum URLParsingTests {
         }
 
         t.run("URLParsing.wrongSchemeIsRejected") {
-            t.check(parse("https://windowpane/picker") == nil, "https should be rejected")
-            t.check(parse("raycast://picker") == nil, "raycast scheme should be rejected")
+            t.check(parse("https://windowpane/launcher") == nil, "https should be rejected")
+            t.check(parse("raycast://launcher") == nil, "raycast scheme should be rejected")
         }
 
         t.run("URLParsing.unknownHostIsRejected") {

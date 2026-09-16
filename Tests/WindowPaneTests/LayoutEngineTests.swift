@@ -158,5 +158,129 @@ enum LayoutEngineTests {
             let result = LayoutEngine.frameForNextDisplay(currentFrame: window, currentUsable: current, nextUsable: next)
             t.check(result == CGRect(x: 1000, y: 0, width: 300, height: 200), "got \(result)")
         }
+
+        func frameWithGap(
+            width: WindowDimension?,
+            height: WindowDimension?,
+            anchor: Anchor,
+            gap: CGFloat,
+            offsetX: WindowDimension = .percent(0),
+            offsetY: WindowDimension = .percent(0),
+            usable: CGRect? = nil,
+            current: CGRect = .zero
+        ) -> CGRect {
+            LayoutEngine.frame(for: LayoutEngine.Request(
+                usableArea: usable ?? area,
+                currentFrame: current,
+                width: width,
+                height: height,
+                anchor: anchor,
+                offsetX: offsetX,
+                offsetY: offsetY,
+                interGap: gap
+            ))
+        }
+
+        t.run("LayoutEngine.interGapLeftHalf") {
+            let result = frameWithGap(width: .percent(50), height: .percent(100), anchor: .topLeft, gap: 10)
+            t.check(result == CGRect(x: 0, y: 0, width: 495, height: 700), "got \(result)")
+        }
+
+        t.run("LayoutEngine.interGapRightHalf") {
+            let result = frameWithGap(width: .percent(50), height: .percent(100), anchor: .topRight, gap: 10)
+            t.check(result == CGRect(x: 505, y: 0, width: 495, height: 700), "got \(result)")
+        }
+
+        t.run("LayoutEngine.interGapCenter") {
+            let result = frameWithGap(width: .percent(50), height: .percent(50), anchor: .center, gap: 10)
+            t.check(result == CGRect(x: 252.5, y: 177.5, width: 495, height: 345), "got \(result)")
+        }
+
+        t.run("LayoutEngine.interGapKeepAnchorNoShrink") {
+            let current = CGRect(x: 100, y: 200, width: 300, height: 150)
+            let result = frameWithGap(width: nil, height: nil, anchor: .moveLeft, gap: 10, current: current)
+            t.check(result == CGRect(x: 0, y: 200, width: 300, height: 150), "keep anchor should not shrink with gap")
+        }
+
+        t.run("LayoutEngine.interGapZeroMatchesNoGap") {
+            let result = frameWithGap(width: .percent(50), height: .percent(100), anchor: .topLeft, gap: 0)
+            t.check(result == CGRect(x: 0, y: 0, width: 500, height: 700), "zero gap should match no-gap behavior")
+        }
+
+        t.run("LayoutEngine.interGapTopLeftQuarter") {
+            let result = frameWithGap(width: .percent(50), height: .percent(50), anchor: .topLeft, gap: 10)
+            t.check(result == CGRect(x: 0, y: 355, width: 495, height: 345), "got \(result)")
+        }
+
+        t.run("LayoutEngine.interGapBottomLeftQuarter") {
+            let result = frameWithGap(width: .percent(50), height: .percent(50), anchor: .bottomLeft, gap: 10)
+            t.check(result == CGRect(x: 0, y: 0, width: 495, height: 345), "got \(result)")
+        }
+
+        t.run("LayoutEngine.interGapVerticalGapBetweenQuarters") {
+            let top = frameWithGap(width: .percent(50), height: .percent(50), anchor: .topLeft, gap: 10)
+            let bottom = frameWithGap(width: .percent(50), height: .percent(50), anchor: .bottomLeft, gap: 10)
+            let gapBetween = top.minY - bottom.maxY
+            t.check(gapBetween == 10, "vertical gap between top and bottom quarters should be 10, got \(gapBetween)")
+        }
+
+        t.run("LayoutEngine.interGapHorizontalGapBetweenQuarters") {
+            let left = frameWithGap(width: .percent(50), height: .percent(50), anchor: .topLeft, gap: 10)
+            let right = frameWithGap(width: .percent(50), height: .percent(50), anchor: .topRight, gap: 10)
+            let gapBetween = right.minX - left.maxX
+            t.check(gapBetween == 10, "horizontal gap between left and right quarters should be 10, got \(gapBetween)")
+        }
+
+        t.run("LayoutEngine.interGapVerticalGapBetweenRightQuarters") {
+            let top = frameWithGap(width: .percent(50), height: .percent(50), anchor: .topRight, gap: 10)
+            let bottom = frameWithGap(width: .percent(50), height: .percent(50), anchor: .bottomRight, gap: 10)
+            let gapBetween = top.minY - bottom.maxY
+            t.check(gapBetween == 10, "vertical gap between top right and bottom right quarters should be 10, got \(gapBetween)")
+        }
+
+        t.run("LayoutEngine.interGapWithUsableAreaMatchesEdgeGap") {
+            let screen = CGRect(x: 0, y: 0, width: 1000, height: 700)
+            let gap: CGFloat = 10
+            let usable = LayoutEngine.usableArea(in: screen, gap: gap)
+
+            let topLeft = LayoutEngine.frame(for: LayoutEngine.Request(
+                usableArea: usable, currentFrame: .zero,
+                width: .percent(50), height: .percent(50), anchor: .topLeft,
+                offsetX: .percent(0), offsetY: .percent(0), interGap: gap
+            ))
+            let bottomLeft = LayoutEngine.frame(for: LayoutEngine.Request(
+                usableArea: usable, currentFrame: .zero,
+                width: .percent(50), height: .percent(50), anchor: .bottomLeft,
+                offsetX: .percent(0), offsetY: .percent(0), interGap: gap
+            ))
+            let topRight = LayoutEngine.frame(for: LayoutEngine.Request(
+                usableArea: usable, currentFrame: .zero,
+                width: .percent(50), height: .percent(50), anchor: .topRight,
+                offsetX: .percent(0), offsetY: .percent(0), interGap: gap
+            ))
+            let bottomRight = LayoutEngine.frame(for: LayoutEngine.Request(
+                usableArea: usable, currentFrame: .zero,
+                width: .percent(50), height: .percent(50), anchor: .bottomRight,
+                offsetX: .percent(0), offsetY: .percent(0), interGap: gap
+            ))
+
+            let edgeLeft = topLeft.minX - screen.minX
+            let edgeRight = screen.maxX - topRight.maxX
+            let edgeTop = screen.maxY - topLeft.maxY
+            let edgeBottom = bottomLeft.minY - screen.minY
+            let gapVLeft = topLeft.minY - bottomLeft.maxY
+            let gapVRight = topRight.minY - bottomRight.maxY
+            let gapHTop = topRight.minX - topLeft.maxX
+            let gapHBottom = bottomRight.minX - bottomLeft.maxX
+
+            t.check(edgeLeft == gap, "left edge gap \(edgeLeft) != \(gap)")
+            t.check(edgeRight == gap, "right edge gap \(edgeRight) != \(gap)")
+            t.check(edgeTop == gap, "top edge gap \(edgeTop) != \(gap)")
+            t.check(edgeBottom == gap, "bottom edge gap \(edgeBottom) != \(gap)")
+            t.check(gapVLeft == gap, "vertical gap left \(gapVLeft) != \(gap)")
+            t.check(gapVRight == gap, "vertical gap right \(gapVRight) != \(gap)")
+            t.check(gapHTop == gap, "horizontal gap top \(gapHTop) != \(gap)")
+            t.check(gapHBottom == gap, "horizontal gap bottom \(gapHBottom) != \(gap)")
+        }
     }
 }

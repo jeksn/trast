@@ -2,14 +2,20 @@ import WindowPaneCore
 import AppKit
 import KeyboardShortcuts
 import SwiftUI
+import Combine
 
-final class PickerController: NSObject, NSWindowDelegate {
-    static let shared = PickerController()
+extension Notification.Name {
+    static let openSettings = Notification.Name("WindowPaneOpenSettings")
+}
 
-    private var panel: PickerPanel?
-    private let viewModel = PickerViewModel()
+final class LauncherController: NSObject, NSWindowDelegate {
+    static let shared = LauncherController()
+
+    private var panel: LauncherPanel?
+    private let viewModel = LauncherViewModel()
     private var target: WindowRef?
     private var keyMonitor: Any?
+    private var resizeCancellable: AnyCancellable?
 
     func toggle() {
         if panel?.isVisible == true {
@@ -25,12 +31,12 @@ final class PickerController: NSObject, NSWindowDelegate {
         viewModel.reset()
 
         let panel = ensurePanel()
-        position(panel)
+        resizePanelToFit()
         panel.makeKeyAndOrderFront(nil)
     }
 
-    private func makeItems() -> [PickerItem] {
-        var items: [PickerItem] = []
+    private func makeItems() -> [LauncherItem] {
+        var items: [LauncherItem] = []
         items.append(contentsOf: CommandStore.shared.commands.map { command in
             .command(command, hotkeyName: HotkeyManager.name(for: command.id))
         })
@@ -41,10 +47,11 @@ final class PickerController: NSObject, NSWindowDelegate {
             .appShortcut(shortcut, hotkeyName: HotkeyManager.appJumpName(for: shortcut.id))
         })
         items.append(contentsOf: installedAppItems())
+        items.append(contentsOf: LauncherAction.allCases.map { .launcherAction($0) })
         return items
     }
 
-    private func installedAppItems() -> [PickerItem] {
+    private func installedAppItems() -> [LauncherItem] {
         let appShortcuts = AppShortcutStore.shared.validShortcuts.filter { $0.kind == .app }
         let existingBundleIDs = Set(appShortcuts.compactMap { $0.bundleIdentifier })
         let existingPaths = Set(appShortcuts.compactMap { $0.bundleURL?.path })
@@ -52,7 +59,7 @@ final class PickerController: NSObject, NSWindowDelegate {
         return AppScanner.cachedApps().compactMap { app in
             if let bid = app.bundleIdentifier, existingBundleIDs.contains(bid) { return nil }
             if existingPaths.contains(app.bundleURL.path) { return nil }
-            return PickerItem.installedApp(app, hotkeyName: KeyboardShortcuts.Name("installedApp.\(app.id)"))
+            return LauncherItem.installedApp(app, hotkeyName: KeyboardShortcuts.Name("installedApp.\(app.id)"))
         }
     }
 
@@ -60,7 +67,7 @@ final class PickerController: NSObject, NSWindowDelegate {
         panel?.orderOut(nil)
     }
 
-    private func handle(_ item: PickerItem) {
+    private func handle(_ item: LauncherItem) {
         UsageTracker.shared.record(item.id)
         switch item {
         case .command(let command, _):
@@ -81,40 +88,72 @@ final class PickerController: NSObject, NSWindowDelegate {
                 }
                 runningApp?.activate(options: [.activateAllWindows])
             }
+        case .launcherAction(let action):
+            close()
+            switch action {
+            case .settings:
+                openSettingsWindow()
+            case .clipboardHistory:
+                ClipboardController.shared.show()
+            case .checkForUpdates:
+                UpdateChecker.checkForUpdates()
+            case .quit:
+                NSApp.terminate(nil)
+            }
         }
     }
 
-    private func ensurePanel() -> PickerPanel {
+    private func ensurePanel() -> LauncherPanel {
         if let panel { return panel }
 
-        let panel = PickerPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 560, height: 380),
-            styleMask: [.titled, .fullSizeContentView, .nonactivatingPanel],
+        let panel = LauncherPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 640, height: 400),
+            styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
         )
-        panel.titleVisibility = .hidden
-        panel.titlebarAppearsTransparent = true
-        panel.standardWindowButton(.closeButton)?.isHidden = true
-        panel.standardWindowButton(.miniaturizeButton)?.isHidden = true
-        panel.standardWindowButton(.zoomButton)?.isHidden = true
         panel.isReleasedWhenClosed = false
         panel.isMovableByWindowBackground = false
         panel.hidesOnDeactivate = false
         panel.level = .floating
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         panel.delegate = self
-        panel.contentView = NSHostingView(
-            rootView: PickerView(viewModel: viewModel) { [weak self] item in
+        panel.isOpaque = false
+        panel.backgroundColor = .clear
+        panel.hasShadow = true
+
+        let hostingView = NSHostingView(
+            rootView: LauncherView(viewModel: viewModel) { [weak self] item in
                 self?.handle(item)
             }
         )
+        hostingView.translatesAutoresizingMaskIntoConstraints = false
+        panel.contentView = hostingView
+
         self.panel = panel
         installKeyMonitor()
+        observeContentChanges()
         return panel
     }
 
-    private func position(_ panel: NSPanel) {
+    private func observeContentChanges() {
+        resizeCancellable = viewModel.objectWillChange.sink { [weak self] _ in
+            DispatchQueue.main.async {
+                self?.resizePanelToFit()
+            }
+        }
+    }
+
+    private func resizePanelToFit() {
+        guard let panel, let hostingView = panel.contentView as? NSHostingView<LauncherView> else { return }
+        let fittingSize = hostingView.fittingSize
+        var height = min(fittingSize.height, 440)
+        height = max(height, 52)
+        panel.setContentSize(CGSize(width: 640, height: height))
+        reposition(panel)
+    }
+
+    private func reposition(_ panel: NSPanel) {
         let mouse = NSEvent.mouseLocation
         let screen = NSScreen.screens.first { $0.frame.contains(mouse) } ?? NSScreen.main
         guard let screen else { return }
@@ -128,6 +167,13 @@ final class PickerController: NSObject, NSWindowDelegate {
         guard keyMonitor == nil else { return }
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self, let panel = self.panel, panel.isKeyWindow else { return event }
+
+            if event.modifierFlags.contains(.command), event.keyCode == 43 {
+                self.close()
+                self.openSettingsWindow()
+                return nil
+            }
+
             switch event.keyCode {
             case 125:
                 self.viewModel.moveSelection(1)
@@ -152,8 +198,14 @@ final class PickerController: NSObject, NSWindowDelegate {
     func windowDidResignKey(_ notification: Notification) {
         close()
     }
+
+    private func openSettingsWindow() {
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(name: .openSettings, object: nil)
+        }
+    }
 }
 
-final class PickerPanel: NSPanel {
+final class LauncherPanel: NSPanel {
     override var canBecomeKey: Bool { true }
 }

@@ -3,12 +3,47 @@ import KeyboardShortcuts
 import WindowPaneCore
 import AppKit
 
-enum PickerItem: Identifiable {
+enum LauncherAction: String, CaseIterable, Identifiable {
+    case settings
+    case clipboardHistory
+    case checkForUpdates
+    case quit
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .settings: return "Settings"
+        case .clipboardHistory: return "Clipboard History"
+        case .checkForUpdates: return "Check for Updates"
+        case .quit: return "Quit WindowPane"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .settings: return "gearshape"
+        case .clipboardHistory: return "clipboard"
+        case .checkForUpdates: return "arrow.triangle.2.circlecircle"
+        case .quit: return "power"
+        }
+    }
+}
+
+enum LauncherItem: Identifiable {
     case command(WindowCommand, hotkeyName: KeyboardShortcuts.Name)
     case appShortcut(AppShortcut, hotkeyName: KeyboardShortcuts.Name)
     case installedApp(AppChooserItem, hotkeyName: KeyboardShortcuts.Name)
+    case launcherAction(LauncherAction)
 
-    var id: String { hotkeyName.rawValue }
+    var id: String {
+        switch self {
+        case .command(_, let name), .appShortcut(_, let name), .installedApp(_, let name):
+            return name.rawValue
+        case .launcherAction(let action):
+            return "launcherAction.\(action.rawValue)"
+        }
+    }
 
     var title: String {
         switch self {
@@ -18,13 +53,17 @@ enum PickerItem: Identifiable {
             return shortcut.name
         case .installedApp(let app, _):
             return app.name
+        case .launcherAction(let action):
+            return action.title
         }
     }
 
-    var hotkeyName: KeyboardShortcuts.Name {
+    var hotkeyName: KeyboardShortcuts.Name? {
         switch self {
         case .command(_, let name), .appShortcut(_, let name), .installedApp(_, let name):
             return name
+        case .launcherAction:
+            return nil
         }
     }
 
@@ -40,6 +79,8 @@ enum PickerItem: Identifiable {
             }
         case .installedApp:
             return "app"
+        case .launcherAction(let action):
+            return action.icon
         }
     }
 
@@ -47,7 +88,7 @@ enum PickerItem: Identifiable {
         switch self {
         case .installedApp(let app, _):
             return app.icon
-        case .command, .appShortcut:
+        case .command, .appShortcut, .launcherAction:
             return nil
         }
     }
@@ -60,24 +101,26 @@ enum PickerItem: Identifiable {
             return "Shortcuts"
         case .installedApp:
             return "Applications"
+        case .launcherAction:
+            return "WindowPane"
         }
     }
 }
 
-struct PickerSection: Identifiable {
+struct LauncherSection: Identifiable {
     let title: String
-    let items: [PickerItem]
+    let items: [LauncherItem]
     var id: String { title }
 }
 
-final class PickerViewModel: ObservableObject {
+final class LauncherViewModel: ObservableObject {
     @Published var query = "" {
         didSet { selectedIndex = 0 }
     }
     @Published var selectedIndex = 0
     @Published var focusToken = UUID()
 
-    var items: [PickerItem] = []
+    var items: [LauncherItem] = []
 
     func reset() {
         query = ""
@@ -85,26 +128,17 @@ final class PickerViewModel: ObservableObject {
         focusToken = UUID()
     }
 
-    var filtered: [PickerItem] {
+    var filtered: [LauncherItem] {
         let trimmed = query.trimmingCharacters(in: .whitespaces)
-        guard !trimmed.isEmpty else {
-            let ids = UsageTracker.shared.sortedByRecent(items.map(\.id))
-            let idOrder = Dictionary(uniqueKeysWithValues: ids.enumerated().map { ($1, $0) })
-            return items.sorted { (a, b) in
-                let ia = idOrder[a.id] ?? Int.max
-                let ib = idOrder[b.id] ?? Int.max
-                if ia != ib { return ia < ib }
-                return a.title.localizedCaseInsensitiveCompare(b.title) == .orderedAscending
-            }
-        }
+        guard !trimmed.isEmpty else { return [] }
         return FuzzyMatch.ranked(items, query: query) { $0.title }
     }
 
-    var sections: [PickerSection] {
+    var sections: [LauncherSection] {
         let filtered = self.filtered
-        return ["Commands", "Actions", "Shortcuts", "Applications"].compactMap { title in
+        return ["Commands", "Actions", "Shortcuts", "Applications", "WindowPane"].compactMap { title in
             let sectionItems = filtered.filter { $0.section == title }
-            return sectionItems.isEmpty ? nil : PickerSection(title: title, items: sectionItems)
+            return sectionItems.isEmpty ? nil : LauncherSection(title: title, items: sectionItems)
         }
     }
 
@@ -114,7 +148,7 @@ final class PickerViewModel: ObservableObject {
         selectedIndex = (selectedIndex + delta + count) % count
     }
 
-    func selectedItem() -> PickerItem? {
+    func selectedItem() -> LauncherItem? {
         filtered[safe: selectedIndex]
     }
 }

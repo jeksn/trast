@@ -14,13 +14,12 @@ struct WindowPaneApp: App {
             MenuContent()
                 .environmentObject(store)
                 .environmentObject(appShortcutStore)
-                .environmentObject(snippetStore)
         } label: {
             Image(nsImage: StatusBarIcon.image)
         }
         .menuBarExtraStyle(.menu)
 
-        Window("WindowPane Settings", id: "settings") {
+        Window("WindowPane", id: "settings") {
             SettingsView()
                 .environmentObject(store)
                 .environmentObject(appShortcutStore)
@@ -33,79 +32,54 @@ struct WindowPaneApp: App {
 struct MenuContent: View {
     @EnvironmentObject private var store: CommandStore
     @EnvironmentObject private var appShortcutStore: AppShortcutStore
-    @EnvironmentObject private var snippetStore: SnippetStore
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
-        if !Accessibility.isTrusted {
-            Button("Enable Accessibility Permission…") {
-                Accessibility.openSystemSettings()
+        Group {
+            if !Accessibility.isTrusted {
+                Button("Enable Accessibility Permission…") {
+                    Accessibility.openSystemSettings()
+                }
+                Divider()
             }
-            Divider()
-        }
 
-        if store.pinnedCommands.isEmpty {
-            Button("No pinned commands — choose in Settings…") {
+            if store.pinnedCommands.isEmpty {
+                Button("No pinned commands — choose in Settings…") {
+                    openSettingsWindow()
+                }
+            }
+            ForEach(store.pinnedCommands) { command in
+                Button(command.name.isEmpty ? "Untitled" : command.name) {
+                    CommandApplier.shared.apply(command)
+                }
+                .keyboardShortcut(for: command)
+            }
+
+            if !appShortcutStore.validShortcuts.isEmpty {
+                Divider()
+                Menu("Shortcuts") {
+                    ForEach(appShortcutStore.validShortcuts) { shortcut in
+                        Button(shortcut.name.isEmpty ? "Untitled" : shortcut.name) {
+                            AppShortcutStore.shared.activate(shortcut.id)
+                        }
+                        .keyboardShortcut(for: shortcut)
+                    }
+                }
+            }
+
+            Divider()
+            Button("Launcher…") {
+                LauncherController.shared.show()
+            }
+            Button("Settings…") {
                 openSettingsWindow()
             }
-        }
-        ForEach(store.pinnedCommands) { command in
-            Button(command.name.isEmpty ? "Untitled" : command.name) {
-                CommandApplier.shared.apply(command)
-            }
-            .keyboardShortcut(for: command)
-        }
-
-        if !appShortcutStore.validShortcuts.isEmpty {
-            Divider()
-            Menu("Shortcuts") {
-                ForEach(appShortcutStore.validShortcuts) { shortcut in
-                    Button(shortcut.name.isEmpty ? "Untitled" : shortcut.name) {
-                        AppShortcutStore.shared.activate(shortcut.id)
-                    }
-                    .keyboardShortcut(for: shortcut)
-                }
+            Button("Quit WindowPane") {
+                NSApp.terminate(nil)
             }
         }
-
-        Divider()
-        Button("Restore Previous Size") {
-            CommandApplier.shared.restore()
-        }
-        Button("Next Window") {
-            WindowCycler.cycleNext()
-        }
-        Button("Quick Picker…") {
-            PickerController.shared.show()
-        }
-        Button("Clipboard History…") {
-            ClipboardController.shared.show()
-        }
-        if !snippetStore.snippets.isEmpty {
-            Divider()
-            Menu("Snippets") {
-                ForEach(snippetStore.validSnippets) { snippet in
-                    Toggle(snippet.name, isOn: Binding(
-                        get: { snippet.enabled },
-                        set: { newValue in
-                            var updated = snippet
-                            updated.enabled = newValue
-                            snippetStore.update(updated)
-                            SnippetExpander.shared.restart()
-                        }
-                    ))
-                }
-            }
-        }
-        Divider()
-        Button("Check for Updates…") {
-            UpdateChecker.checkForUpdates()
-        }
-        Button("Settings…") {
+        .onReceive(NotificationCenter.default.publisher(for: .openSettings)) { _ in
             openSettingsWindow()
-        }
-        Button("Quit WindowPane") {
-            NSApp.terminate(nil)
         }
     }
 
@@ -115,7 +89,7 @@ struct MenuContent: View {
         DispatchQueue.main.async {
             NSApp.activate(ignoringOtherApps: true)
             NSApp.windows
-                .first { $0.title == "WindowPane Settings" }?
+                .first { $0.title == "WindowPane" }?
                 .makeKeyAndOrderFront(nil)
         }
     }

@@ -2,9 +2,10 @@ import WindowPaneCore
 import SwiftUI
 import KeyboardShortcuts
 
-struct PickerView: View {
-    @ObservedObject var viewModel: PickerViewModel
-    let onSelect: (PickerItem) -> Void
+struct LauncherView: View {
+    @ObservedObject var viewModel: LauncherViewModel
+    let onSelect: (LauncherItem) -> Void
+    @AppStorage(AppSettings.launcherOpacityKey) private var opacity: Double = 0.85
 
     @FocusState private var isFocused: Bool
 
@@ -13,36 +14,34 @@ struct PickerView: View {
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(.secondary)
-                TextField("Type a command or app name", text: $viewModel.query)
+                TextField("Search", text: $viewModel.query)
                     .textFieldStyle(.plain)
-                    .font(.system(size: 17))
+                    .font(.system(size: 20))
                     .focused($isFocused)
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
 
-            Divider()
+            if !viewModel.filtered.isEmpty {
+                Divider()
 
-            if viewModel.filtered.isEmpty {
-                Text("No matching items")
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
                 ScrollViewReader { proxy in
                     ScrollView {
                         LazyVStack(spacing: 0) {
                             ForEach(viewModel.sections) { section in
-                                HStack {
-                                    Text(section.title)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                        .padding(.horizontal, 14)
-                                        .padding(.top, 8)
-                                        .padding(.bottom, 2)
-                                    Spacer()
+                                if shouldShowSectionHeader {
+                                    HStack {
+                                        Text(section.title)
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                            .padding(.horizontal, 16)
+                                            .padding(.top, 8)
+                                            .padding(.bottom, 2)
+                                        Spacer()
+                                    }
                                 }
                                 ForEach(section.items) { item in
-                                    PickerRowView(item: item, isSelected: item.id == viewModel.filtered[safe: viewModel.selectedIndex]?.id, query: viewModel.query)
+                                    LauncherRowView(item: item, isSelected: item.id == viewModel.filtered[safe: viewModel.selectedIndex]?.id, query: viewModel.query)
                                         .id(item.id)
                                         .onTapGesture { onSelect(item) }
                                 }
@@ -50,6 +49,7 @@ struct PickerView: View {
                         }
                         .padding(.vertical, 4)
                     }
+                    .frame(maxHeight: 360)
                     .onChange(of: viewModel.selectedIndex) { index in
                         if let item = viewModel.filtered[safe: index] {
                             proxy.scrollTo(item.id, anchor: .center)
@@ -58,45 +58,54 @@ struct PickerView: View {
                 }
             }
         }
-        .frame(width: 560, height: 380)
-        .background(.regularMaterial)
-        .ignoresSafeArea(edges: .top)
+        .frame(width: 640)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(.regularMaterial)
+                .opacity(opacity)
+        )
+        .ignoresSafeArea(edges: .all)
         .onAppear { isFocused = true }
         .onChange(of: viewModel.focusToken) { _ in isFocused = true }
-        .onExitCommand { PickerController.shared.close() }
+        .onExitCommand { LauncherController.shared.close() }
+    }
+
+    private var shouldShowSectionHeader: Bool {
+        viewModel.sections.count > 1
     }
 }
 
-struct PickerRowView: View {
-    let item: PickerItem
+struct LauncherRowView: View {
+    let item: LauncherItem
     let isSelected: Bool
     let query: String
 
     @State private var isHovered = false
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 12) {
             if let nsImage = item.iconImage {
                 Image(nsImage: nsImage)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-                    .frame(width: 18, height: 18)
+                    .frame(width: 22, height: 22)
             } else {
                 Image(systemName: item.icon)
                     .foregroundStyle(.secondary)
-                    .frame(width: 18)
+                    .frame(width: 22, height: 22)
             }
             highlightedTitle
                 .lineLimit(1)
             Spacer()
-            if let shortcut = KeyboardShortcuts.getShortcut(for: item.hotkeyName) {
+            if let name = item.hotkeyName,
+               let shortcut = KeyboardShortcuts.getShortcut(for: name) {
                 Text(shortcut.description)
                     .font(.system(size: 12, design: .monospaced))
                     .foregroundStyle(.secondary)
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 9)
         .background(
             RoundedRectangle(cornerRadius: 6)
                 .fill(rowBackground)
