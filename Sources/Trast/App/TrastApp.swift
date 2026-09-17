@@ -19,7 +19,7 @@ struct TrastApp: App {
         }
         .menuBarExtraStyle(.menu)
 
-        Window("Trast", id: "settings") {
+        Window("", id: "settings") {
             SettingsView()
                 .environmentObject(store)
                 .environmentObject(appShortcutStore)
@@ -33,10 +33,11 @@ struct MenuContent: View {
     @EnvironmentObject private var store: CommandStore
     @EnvironmentObject private var appShortcutStore: AppShortcutStore
     @Environment(\.openWindow) private var openWindow
+    @State private var isTrusted = Accessibility.isTrusted
 
     var body: some View {
         Group {
-            if !Accessibility.isTrusted {
+            if !isTrusted {
                 Button("Enable Accessibility Permission…") {
                     Accessibility.openSystemSettings()
                 }
@@ -81,6 +82,10 @@ struct MenuContent: View {
         .onReceive(NotificationCenter.default.publisher(for: .openSettings)) { _ in
             openSettingsWindow()
         }
+        .onReceive(Timer.publish(every: 2, on: .main, in: .common).autoconnect()) { _ in
+            let updated = Accessibility.isTrusted
+            if updated != isTrusted { isTrusted = updated }
+        }
     }
 
     private func openSettingsWindow() {
@@ -89,7 +94,7 @@ struct MenuContent: View {
         DispatchQueue.main.async {
             NSApp.activate(ignoringOtherApps: true)
             NSApp.windows
-                .first { $0.title == "Trast" }?
+                .first { !($0 is NSPanel) }?
                 .makeKeyAndOrderFront(nil)
         }
     }

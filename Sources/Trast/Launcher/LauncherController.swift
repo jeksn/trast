@@ -299,7 +299,7 @@ final class LauncherController: NSObject, NSWindowDelegate {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                 NSApp.activate(ignoringOtherApps: true)
                 NSApp.windows
-                    .first { $0.title == "Trast" }?
+                    .first { !($0 is NSPanel) }?
                     .makeKeyAndOrderFront(nil)
             }
         }
