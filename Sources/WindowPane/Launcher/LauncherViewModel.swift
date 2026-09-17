@@ -274,7 +274,14 @@ final class LauncherViewModel: ObservableObject {
     private func filterByCategory(_ items: [LauncherItem]) -> [LauncherItem] {
         switch selectedCategory {
         case .all:
-            return items
+            return items.filter { item in
+                switch item {
+                case .clipboardEntry, .snippetEntry:
+                    return false
+                default:
+                    return true
+                }
+            }
         case .commands:
             return items.filter { $0.section == "Window Commands" || $0.section == "Actions" }
         case .shortcuts:
@@ -342,7 +349,9 @@ final class LauncherViewModel: ObservableObject {
             selectedCategory = .all
             gridIndex = 0
         }
-        focusToken = UUID()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+            self?.focusToken = UUID()
+        }
     }
 
     func handleTab(shift: Bool) {
