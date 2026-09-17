@@ -31,7 +31,7 @@ final class HotkeyManager {
             WindowCycler.cycleNext()
         }
         KeyboardShortcuts.onKeyUp(for: Self.openClipboard) {
-            ClipboardController.shared.toggle()
+            LauncherController.shared.showClipboard()
         }
         for action in WindowAction.all {
             register(action)

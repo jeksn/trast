@@ -34,7 +34,7 @@ struct GeneralSettingsView: View {
             } header: {
                 Text("Launcher")
             } footer: {
-                Text("Press this shortcut anywhere to open the Launcher. The Clipboard tab shows recent clipboard history; the Snippets tab shows available text snippets. Both can be toggled on or off.")
+                Text("Press this shortcut anywhere to open the Launcher. The Clipboard tab shows full clipboard history; the Snippets tab shows available text snippets. Both can be toggled on or off.")
             }
 
             Section {

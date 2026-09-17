@@ -15,7 +15,6 @@ final class LauncherController: NSObject, NSWindowDelegate {
     private let viewModel = LauncherViewModel()
     private var target: WindowRef?
     private var keyMonitor: Any?
-    private var flagsMonitor: Any?
     private var resizeCancellable: AnyCancellable?
 
     func toggle() {
@@ -36,6 +35,17 @@ final class LauncherController: NSObject, NSWindowDelegate {
         panel.makeKeyAndOrderFront(nil)
     }
 
+    func showClipboard() {
+        if panel?.isVisible == true, viewModel.selectedCategory == .clipboard, !viewModel.showsActions {
+            close()
+        } else {
+            show()
+            DispatchQueue.main.async { [weak self] in
+                self?.viewModel.selectCategory(.clipboard)
+            }
+        }
+    }
+
     private func makeItems() -> [LauncherItem] {
         var items: [LauncherItem] = []
         items.append(contentsOf: CommandStore.shared.commands.map { command in
@@ -50,7 +60,15 @@ final class LauncherController: NSObject, NSWindowDelegate {
         items.append(contentsOf: installedAppItems())
         items.append(contentsOf: LauncherAction.allCases.map { .launcherAction($0) })
         items.append(contentsOf: SnippetStore.shared.validSnippets.map { .snippetEntry($0) })
-        items.append(contentsOf: ClipboardStore.shared.items.prefix(20).map { .clipboardEntry($0) })
+        items.append(contentsOf: ClipboardStore.shared.items.map { .clipboardEntry($0) })
+        items.append(contentsOf: LauncherViewModel.Category.visibleCases.compactMap { category -> LauncherItem? in
+            switch category {
+            case .all, .windowPane:
+                return nil
+            default:
+                return .categoryEntry(category)
+            }
+        })
         return items
     }
 
@@ -80,6 +98,16 @@ final class LauncherController: NSObject, NSWindowDelegate {
         panel?.orderOut(nil)
     }
 
+    func handleEscape() {
+        if viewModel.showsActions {
+            close()
+        } else if viewModel.selectedCategory != .all {
+            viewModel.enterActionsMode()
+        } else {
+            close()
+        }
+    }
+
     private func handle(_ item: LauncherItem) {
         UsageTracker.shared.record(item.id)
         switch item {
@@ -102,16 +130,20 @@ final class LauncherController: NSObject, NSWindowDelegate {
                 runningApp?.activate(options: [.activateAllWindows])
             }
         case .launcherAction(let action):
+            if case .clipboardHistory = action {
+                viewModel.selectCategory(.clipboard)
+                return
+            }
             close()
             switch action {
             case .settings:
                 openSettingsWindow()
-            case .clipboardHistory:
-                ClipboardController.shared.show()
             case .checkForUpdates:
                 UpdateChecker.checkForUpdates()
             case .quit:
                 NSApp.terminate(nil)
+            case .clipboardHistory:
+                break
             }
         case .clipboardEntry(let item):
             close()
@@ -123,6 +155,8 @@ final class LauncherController: NSObject, NSWindowDelegate {
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(resolved, forType: .string)
             HUD.show("Snippet copied to clipboard")
+        case .categoryEntry(let category):
+            viewModel.selectCategory(category)
         }
     }
 
@@ -155,7 +189,6 @@ final class LauncherController: NSObject, NSWindowDelegate {
 
         self.panel = panel
         installKeyMonitor()
-        installFlagsMonitor()
         observeContentChanges()
         return panel
     }
@@ -170,11 +203,14 @@ final class LauncherController: NSObject, NSWindowDelegate {
 
     private func resizePanelToFit() {
         guard let panel, let hostingView = panel.contentView as? NSHostingView<LauncherView> else { return }
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
         let fittingSize = hostingView.fittingSize
         var height = min(fittingSize.height, 440)
         height = max(height, 52)
         panel.setContentSize(CGSize(width: 640, height: height))
         reposition(panel)
+        CATransaction.commit()
     }
 
     private func reposition(_ panel: NSPanel) {
@@ -184,7 +220,11 @@ final class LauncherController: NSObject, NSWindowDelegate {
         let visible = screen.visibleFrame
         let x = visible.midX - panel.frame.width / 2
         let y = visible.maxY - visible.height * 0.32 - panel.frame.height
-        panel.setFrameOrigin(NSPoint(x: x, y: y))
+        // Pixel-align the origin to avoid sub-pixel jitter on non-HiDPI displays.
+        let scale = screen.backingScaleFactor
+        let alignedX = (x * scale).rounded() / scale
+        let alignedY = (y * scale).rounded() / scale
+        panel.setFrameOrigin(NSPoint(x: alignedX, y: alignedY))
     }
 
     private func installKeyMonitor() {
@@ -208,38 +248,43 @@ final class LauncherController: NSObject, NSWindowDelegate {
 
             switch event.keyCode {
             case 48:
-                if event.modifierFlags.contains(.shift) {
-                    self.viewModel.cycleCategoryBackward()
-                } else {
-                    self.viewModel.cycleCategory()
+                self.viewModel.handleTab(shift: event.modifierFlags.contains(.shift))
+                return nil
+            case 123, 124, 125, 126:
+                if self.viewModel.showsActions {
+                    switch event.keyCode {
+                    case 123: self.viewModel.moveGridSelection(-1)
+                    case 124: self.viewModel.moveGridSelection(1)
+                    case 125: self.viewModel.moveGridSelection(2)
+                    default: self.viewModel.moveGridSelection(-2)
+                    }
+                    return nil
                 }
-                return nil
-            case 125:
-                self.viewModel.moveSelection(1)
-                return nil
-            case 126:
-                self.viewModel.moveSelection(-1)
-                return nil
+                if event.keyCode == 125 {
+                    self.viewModel.moveSelection(1)
+                    return nil
+                }
+                if event.keyCode == 126 {
+                    self.viewModel.moveSelection(-1)
+                    return nil
+                }
+                return event
             case 36, 76:
-                if let item = self.viewModel.selectedItem() {
+                if self.viewModel.showsActions {
+                    self.viewModel.selectGridCategory()
+                } else if let item = self.viewModel.selectedItem() {
                     self.handle(item)
                 }
                 return nil
             case 53:
-                self.close()
+                self.handleEscape()
                 return nil
             default:
+                if self.viewModel.showsActions {
+                    return nil
+                }
                 return event
             }
-        }
-    }
-
-    private func installFlagsMonitor() {
-        guard flagsMonitor == nil else { return }
-        flagsMonitor = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
-            guard let self, let panel = self.panel, panel.isKeyWindow else { return event }
-            self.viewModel.showTabNumbers = event.modifierFlags.contains(.command)
-            return event
         }
     }
 

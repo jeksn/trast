@@ -2,6 +2,7 @@ import Foundation
 import KeyboardShortcuts
 import WindowPaneCore
 import AppKit
+import SwiftUI
 
 enum LauncherAction: String, CaseIterable, Identifiable {
     case settings
@@ -29,9 +30,6 @@ enum LauncherAction: String, CaseIterable, Identifiable {
         }
     }
 
-    static var windowPaneActions: [LauncherAction] {
-        allCases.filter { $0 != .clipboardHistory }
-    }
 }
 
 enum LauncherItem: Identifiable {
@@ -41,6 +39,7 @@ enum LauncherItem: Identifiable {
     case launcherAction(LauncherAction)
     case clipboardEntry(ClipboardItem)
     case snippetEntry(Snippet)
+    case categoryEntry(LauncherViewModel.Category)
 
     var id: String {
         switch self {
@@ -52,6 +51,8 @@ enum LauncherItem: Identifiable {
             return "clipboard.\(item.id.uuidString)"
         case .snippetEntry(let snippet):
             return "snippet.\(snippet.id.uuidString)"
+        case .categoryEntry(let category):
+            return "category.\(category.rawValue)"
         }
     }
 
@@ -69,6 +70,8 @@ enum LauncherItem: Identifiable {
             return item.displayName
         case .snippetEntry(let snippet):
             return snippet.name
+        case .categoryEntry(let category):
+            return category.label
         }
     }
 
@@ -76,7 +79,7 @@ enum LauncherItem: Identifiable {
         switch self {
         case .command(_, let name), .appShortcut(_, let name), .installedApp(_, let name):
             return name
-        case .launcherAction, .clipboardEntry, .snippetEntry:
+        case .launcherAction, .clipboardEntry, .snippetEntry, .categoryEntry:
             return nil
         }
     }
@@ -103,6 +106,8 @@ enum LauncherItem: Identifiable {
             }
         case .snippetEntry:
             return "text.append"
+        case .categoryEntry(let category):
+            return category.icon
         }
     }
 
@@ -113,15 +118,24 @@ enum LauncherItem: Identifiable {
         case .clipboardEntry(let item):
             guard item.kind == .image, let data = item.imageData else { return nil }
             return NSImage(data: data)
-        case .command, .appShortcut, .launcherAction, .snippetEntry:
+        case .command, .appShortcut, .launcherAction, .snippetEntry, .categoryEntry:
             return nil
+        }
+    }
+
+    var searchText: String {
+        switch self {
+        case .clipboardEntry(let item):
+            return "\(title)\n\(item.preview)"
+        default:
+            return subtitle.map { "\(title)\n\($0)" } ?? title
         }
     }
 
     var section: String {
         switch self {
         case .command(_, let name):
-            return name.rawValue.hasPrefix("action.") ? "Actions" : "Commands"
+            return name.rawValue.hasPrefix("action.") ? "Actions" : "Window Commands"
         case .appShortcut:
             return "Shortcuts"
         case .installedApp:
@@ -132,6 +146,8 @@ enum LauncherItem: Identifiable {
             return "Clipboard"
         case .snippetEntry:
             return "Snippets"
+        case .categoryEntry:
+            return "Browse"
         }
     }
 
@@ -174,7 +190,7 @@ final class LauncherViewModel: ObservableObject {
         var label: String {
             switch self {
             case .all: return "All"
-            case .commands: return "Commands"
+            case .commands: return "Window Commands"
             case .shortcuts: return "Shortcuts"
             case .applications: return "Apps"
             case .clipboard: return "Clipboard"
@@ -202,6 +218,10 @@ final class LauncherViewModel: ObservableObject {
             cases.append(.windowPane)
             return cases
         }
+
+        static var gridCases: [Category] {
+            visibleCases.filter { $0 != .all }
+        }
     }
 
     private static let placeholders = [
@@ -222,7 +242,8 @@ final class LauncherViewModel: ObservableObject {
     }
     @Published var selectedIndex = 0
     @Published var focusToken = UUID()
-    @Published var showTabNumbers = false
+    @Published var showsActions = false
+    @Published var gridIndex = 0
 
     var items: [LauncherItem] = []
 
@@ -232,6 +253,8 @@ final class LauncherViewModel: ObservableObject {
         query = ""
         selectedIndex = 0
         focusToken = UUID()
+        showsActions = false
+        gridIndex = 0
     }
 
     var filtered: [LauncherItem] {
@@ -244,7 +267,7 @@ final class LauncherViewModel: ObservableObject {
             return recentItems(for: selectedCategory)
         }
 
-        let ranked = FuzzyMatch.ranked(items, query: query) { $0.title }
+        let ranked = FuzzyMatch.ranked(items, query: query) { $0.searchText }
         return filterByCategory(ranked)
     }
 
@@ -253,7 +276,7 @@ final class LauncherViewModel: ObservableObject {
         case .all:
             return items
         case .commands:
-            return items.filter { $0.section == "Commands" || $0.section == "Actions" }
+            return items.filter { $0.section == "Window Commands" || $0.section == "Actions" }
         case .shortcuts:
             return items.filter { $0.section == "Shortcuts" }
         case .applications:
@@ -263,7 +286,7 @@ final class LauncherViewModel: ObservableObject {
         case .snippets:
             return items.filter { $0.section == "Snippets" }
         case .windowPane:
-            return items.filter { $0.section == "WindowPane" } .filter {
+            return items.filter { $0.section == "WindowPane" }.filter {
                 if case .launcherAction(.clipboardHistory) = $0 { return false }
                 return true
             }
@@ -273,9 +296,7 @@ final class LauncherViewModel: ObservableObject {
     private func recentItems(for category: Category) -> [LauncherItem] {
         switch category {
         case .clipboard:
-            var entries: [LauncherItem] = [.launcherAction(.clipboardHistory)]
-            entries.append(contentsOf: ClipboardStore.shared.items.prefix(10).map { .clipboardEntry($0) })
-            return entries
+            return ClipboardStore.shared.items.map { .clipboardEntry($0) }
         case .snippets:
             return SnippetStore.shared.validSnippets.map { .snippetEntry($0) }
         default:
@@ -298,35 +319,90 @@ final class LauncherViewModel: ObservableObject {
             .map { $0 }
     }
 
-    func cycleCategory() {
-        let cases = Category.visibleCases
-        guard let currentIndex = cases.firstIndex(of: selectedCategory) else { return }
-        selectedCategory = cases[(currentIndex + 1) % cases.count]
-        selectedIndex = 0
+    private static let modeAnimation = Animation.easeInOut(duration: 0.18)
+
+    func enterActionsMode(atEnd: Bool = false) {
+        let cases = Category.gridCases
+        guard !cases.isEmpty else { return }
+        if !showsActions {
+            if let index = cases.firstIndex(of: selectedCategory) {
+                gridIndex = index
+            } else {
+                gridIndex = atEnd ? cases.count - 1 : 0
+            }
+        }
+        withAnimation(Self.modeAnimation) {
+            showsActions = true
+        }
     }
 
-    func cycleCategoryBackward() {
-        let cases = Category.visibleCases
-        guard let currentIndex = cases.firstIndex(of: selectedCategory) else { return }
-        let count = cases.count
-        selectedCategory = cases[(currentIndex - 1 + count) % count]
-        selectedIndex = 0
+    func exitActionsMode() {
+        withAnimation(Self.modeAnimation) {
+            showsActions = false
+            selectedCategory = .all
+            gridIndex = 0
+        }
+        focusToken = UUID()
+    }
+
+    func handleTab(shift: Bool) {
+        let cases = Category.gridCases
+        guard !cases.isEmpty else { return }
+
+        if showsActions {
+            let next = gridIndex + (shift ? -1 : 1)
+            if next < 0 || next >= cases.count {
+                exitActionsMode()
+            } else {
+                withAnimation(Self.modeAnimation) {
+                    gridIndex = next
+                }
+            }
+        } else if let currentIndex = cases.firstIndex(of: selectedCategory) {
+            let next = currentIndex + (shift ? -1 : 1)
+            if next < 0 || next >= cases.count {
+                exitActionsMode()
+            } else {
+                withAnimation(Self.modeAnimation) {
+                    gridIndex = next
+                    showsActions = true
+                }
+            }
+        } else {
+            enterActionsMode(atEnd: shift)
+        }
+    }
+
+    func moveGridSelection(_ delta: Int) {
+        let count = Category.gridCases.count
+        guard count > 0 else { return }
+        withAnimation(Self.modeAnimation) {
+            gridIndex = (gridIndex + delta + count) % count
+        }
+    }
+
+    func selectGridCategory() {
+        guard let category = Category.gridCases[safe: gridIndex] else { return }
+        selectCategory(category)
     }
 
     func selectCategoryByIndex(_ index: Int) {
-        let cases = Category.visibleCases
+        let cases = Category.gridCases
         guard index >= 0, index < cases.count else { return }
-        selectedCategory = cases[index]
+        selectCategory(cases[index])
     }
 
     func selectCategory(_ category: Category) {
         selectedCategory = category
         selectedIndex = 0
+        query = ""
+        showsActions = false
+        focusToken = UUID()
     }
 
     var sections: [LauncherSection] {
         let filtered = self.filtered
-        return ["Commands", "Actions", "Shortcuts", "Applications", "Clipboard", "Snippets", "WindowPane"].compactMap { title in
+        return ["Browse", "Window Commands", "Actions", "Shortcuts", "Applications", "Clipboard", "Snippets", "WindowPane"].compactMap { title in
             let sectionItems = filtered.filter { $0.section == title }
             return sectionItems.isEmpty ? nil : LauncherSection(title: title, items: sectionItems)
         }
