@@ -3,9 +3,10 @@
 Ideas for future improvements. Not committed to any order — pick what feels right.
 This file is meant to live alongside the project and can be referenced from a landing page.
 
-## Quick wins
+## Shipping soon
 
-_(All quick wins shipped — see the Larger features below or add new ideas here.)_
+- **Notarization** — sign with a Developer ID certificate and notarize via `notarytool` so Gatekeeper stops warning on first launch. Enables one-click open from the DMG instead of right-click → Open.
+- **Auto-update via Sparkle** — replace the current manual DMG download-and-install flow with Sparkle for seamless background updates (still free, no account needed).
 
 ## Larger features
 
@@ -16,14 +17,21 @@ _(All quick wins shipped — see the Larger features below or add new ideas here
 - **Snap-to-grid drag overlay** — a visual overlay that snaps the dragged window to a configurable grid, as an alternative to predefined commands.
 - **Bulk app import** — add multiple apps as shortcuts in one pass from the shortcut editor.
 
+## Considering
+
+- **Layout presets** — save and restore a full set of window positions across all open windows (like Raycast's "Restore Window Positions"). One command puts every window back where you want it.
+- **Multi-window commands** — apply different layouts to multiple windows at once (e.g. "two side-by-side", "three columns"). Currently commands only target the focused window.
+- **Keyboard-driven window switching** — after applying a command, quickly cycle through windows in the same layout region with a hotkey.
+- **Space-aware commands** — apply a layout only to windows on the current Space, ignoring windows on other desktops.
+
 ## Licensing & monetization
 
-- **14-day trial + license key** — offline Ed25519 license validation via CryptoKit. 14-day full trial, then locked. $5 one-time via Paddle list fulfillment. See `MONETIZATION.md` and `MONETIZATION_PLAN.md` (git-ignored) for details.
+- **14-day trial + license key** — offline Ed25519 license validation via CryptoKit. 14-day full trial, then locked. $5 one-time via Paddle list fulfillment.
 - **LicenseTool CLI** — developer-only tool for generating Ed25519 key pairs, single keys, and batch .txt files for Paddle upload.
 - **License settings tab** — trial status, license key entry, "Buy Trast" link to Paddle checkout.
 
 ## Marketing & launch
 
 - **Landing page** — one-screen: headline, gif, features, $5 one-time, download + buy buttons, comparison vs Rectangle/Magnet, FAQ.
-- **Screen recording** — 15-30 second gif of the picker in action.
-- **Staged rollout** — warm network first, then niche communities (r/macapps, r/macsetups), then broader launch (Product Hunt, HN Show HN). See `GO_TO_MARKET.md` (git-ignored) for the full plan.
+- **Screen recording** — 15-30 second gif of the launcher in action.
+- **Staged rollout** — warm network first, then niche communities (r/macapps, r/macsetups), then broader launch (Product Hunt, HN Show HN).
