@@ -2,33 +2,33 @@
 import PackageDescription
 
 let package = Package(
-    name: "WindowPane",
+    name: "Trast",
     platforms: [
         .macOS(.v13)
     ],
     products: [
-        .executable(name: "WindowPane", targets: ["WindowPane"])
+        .executable(name: "Trast", targets: ["Trast"])
     ],
     dependencies: [
         .package(url: "https://github.com/sindresorhus/KeyboardShortcuts", exact: "1.10.0")
     ],
     targets: [
         .target(
-            name: "WindowPaneCore",
-            path: "Sources/WindowPaneCore"
+            name: "TrastCore",
+            path: "Sources/TrastCore"
         ),
         .executableTarget(
-            name: "WindowPane",
+            name: "Trast",
             dependencies: [
-                "WindowPaneCore",
+                "TrastCore",
                 .product(name: "KeyboardShortcuts", package: "KeyboardShortcuts")
             ],
-            path: "Sources/WindowPane"
+            path: "Sources/Trast"
         ),
         .executableTarget(
-            name: "WindowPaneTests",
-            dependencies: ["WindowPaneCore"],
-            path: "Tests/WindowPaneTests"
+            name: "TrastTests",
+            dependencies: ["TrastCore"],
+            path: "Tests/TrastTests"
         )
     ],
     swiftLanguageModes: [.v5]

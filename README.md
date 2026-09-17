@@ -1,4 +1,4 @@
-# WindowPane
+# Trast
 
 Window management and a Spotlight-like launcher for macOS.
 
@@ -20,7 +20,7 @@ Resize and move the focused window into any layout you define — halves, thirds
 ### Launcher
 
 - **Spotlight-style launcher** — press a global hotkey to open a search bar; results appear below as you type. Search across window commands, actions, shortcuts, installed apps, clipboard history, snippets, and the category views themselves (type "snippets" or "commands" to jump straight into that view)
-- **Actions view** — press Tab to fade the search bar into a 2-column grid of categories (Window Commands, Shortcuts, Apps, Clipboard, Snippets, WindowPane) with ⌘-number badges. Tab scrolls through the options: each press advances to the next tile, and past the last one it wraps back to search (Shift+Tab cycles backward, and from inside a category Tab continues from the neighbouring tile). Arrows also navigate, Return enters a category, and Cmd+1..6 jumps to a category from anywhere; typing is ignored while the grid is shown. Esc from a category returns to the actions grid on that category's tile; Esc from the grid or search closes. Mode switches animate with a blur-and-fade transition
+- **Actions view** — press Tab to fade the search bar into a 2-column grid of categories (Window Commands, Shortcuts, Apps, Clipboard, Snippets, Trast) with ⌘-number badges. Tab scrolls through the options: each press advances to the next tile, and past the last one it wraps back to search (Shift+Tab cycles backward, and from inside a category Tab continues from the neighbouring tile). Arrows also navigate, Return enters a category, and Cmd+1..6 jumps to a category from anywhere; typing is ignored while the grid is shown. Esc from a category returns to the actions grid on that category's tile; Esc from the grid or search closes. Mode switches animate with a blur-and-fade transition
 - **Recent activity** — entering a category without typing shows recently used items from that category, so the launcher feels alive instead of empty; the search bar is focused so you can start filtering immediately. Searching inside a category only searches that category's items; the main search fuzzy-searches everything
 - **App launching** — search and launch any installed app with real app icons; apps with shortcuts show their hotkey
 - **Clipboard history in launcher** — the Clipboard tab shows the full clipboard history (up to the configured limit) directly in the launcher; search matches the full content of each item, not just the first line; select to paste into the frontmost app. The dedicated clipboard hotkey (Settings → Window) opens the Launcher on the Clipboard tab — the launcher is the only clipboard interface
@@ -66,8 +66,8 @@ Resize and move the focused window into any layout you define — halves, thirds
 
 ```bash
 git clone <repo-url>
-cd windowpane
-Scripts/package_app.sh        # release build → ./WindowPane.app
+cd trast
+Scripts/package_app.sh        # release build → ./Trast.app
 Scripts/install.sh --force    # copy to /Applications
 ```
 
@@ -78,11 +78,11 @@ Launch the app and grant **Accessibility** permission when prompted (System Sett
 Ad-hoc–signed builds lose their Accessibility grant on every rebuild (macOS keys the grant to the binary's signature hash). Fix it once by signing with a self-signed certificate:
 
 1. Keychain Access → **Certificate Assistant → Create a Certificate…**
-2. Name: `WindowPane Dev` · Identity Type: **Self Signed Root** · Certificate Type: **Code Signing**
+2. Name: `Trast` · Identity Type: **Self Signed Root** · Certificate Type: **Code Signing**
 3. Export the identity and build:
 
 ```bash
-echo 'export CODESIGN_IDENTITY="WindowPane Dev"' >> ~/.zshrc
+echo 'export CODESIGN_IDENTITY="Trast"' >> ~/.zshrc
 source ~/.zshrc
 Scripts/update.sh
 ```
@@ -112,9 +112,9 @@ Re-grant Accessibility one last time — after that, rebuilds keep the permissio
 ### URL scheme
 
 ```bash
-open "windowpane://apply?name=Left%20Half"   # apply a saved command by name
-open "windowpane://launcher"                 # open the launcher
-open "windowpane://command?position=center&relativeWidth=0.5&relativeHeight=0.5"
+open "trast://apply?name=Left%20Half"   # apply a saved command by name
+open "trast://launcher"                 # open the launcher
+open "trast://command?position=center&relativeWidth=0.5&relativeHeight=0.5"
 ```
 
 `command` params: `position` (`topLeft`…`bottomRight`), `absoluteWidth`/`absoluteHeight` (points), `relativeWidth`/`relativeHeight` (fraction of the display), and `absolute`/`relativeXOffset`/`YOffset`.
@@ -151,13 +151,13 @@ Scripts/update.sh
 - The Launcher is a borderless, non-activating `NSPanel` that stays floating across all spaces; it captures the frontmost window on open so window commands target the right app
 - Clipboard history polls `NSPasteboard.general.changeCount` every 0.5s and stores items in a versioned JSON file
 - Snippet expansion uses a listen-only `CGEvent` tap to detect keywords and injects expansion text via `CGEvent`. Template variables (`{{date}}`, `{{clipboard}}`, `{{time}}`) are resolved before injection
-- Commands persist in `~/Library/Application Support/WindowPane/commands.json`; app/URL/folder shortcuts in `appShortcuts.json`; clipboard history in `clipboard.json`; snippets in `snippets.json`
+- Commands persist in `~/Library/Application Support/Trast/commands.json`; app/URL/folder shortcuts in `appShortcuts.json`; clipboard history in `clipboard.json`; snippets in `snippets.json`
 
 ## Development
 
 ```bash
 swift build                  # debug build
-swift run WindowPaneTests    # test harness
+swift run TrastTests    # test harness
 Scripts/dev.sh               # debug build + relaunch app
 Scripts/package_app.sh       # release build + .app bundle
 ```

@@ -9,7 +9,7 @@ _(All quick wins shipped — see the Larger features below or add new ideas here
 
 ## Larger features
 
-- **CLI tool** — a `windowpane` command-line target (`windowpane apply "Left Half"`, `windowpane list`, `windowpane picker`) that reuses `URLDispatcher` / `CommandStore`. The URL scheme works from `open` but a dedicated CLI is more ergonomic for scripts.
+- **CLI tool** — a `trast` command-line target (`trast apply "Left Half"`, `trast list`, `trast picker`) that reuses `URLDispatcher` / `CommandStore`. The URL scheme works from `open` but a dedicated CLI is more ergonomic for scripts.
 - **Per-display gap** — allow configuring the edge gap per display instead of a single global value.
 - **Include hotkey bindings in export/import** — the current export saves command and shortcut definitions but not their hotkey assignments. Encoding `KeyboardShortcuts.getShortcut(for:)` into the export bundle would make configs fully portable.
 - **Per-app command overrides** — different layouts for different apps (e.g. Safari always opens at Left Half, Terminal always at Maximize). Needs an app-bundle-ID filter on commands and a lookup path in `CommandApplier`.
@@ -20,7 +20,7 @@ _(All quick wins shipped — see the Larger features below or add new ideas here
 
 - **14-day trial + license key** — offline Ed25519 license validation via CryptoKit. 14-day full trial, then locked. $5 one-time via Paddle list fulfillment. See `MONETIZATION.md` and `MONETIZATION_PLAN.md` (git-ignored) for details.
 - **LicenseTool CLI** — developer-only tool for generating Ed25519 key pairs, single keys, and batch .txt files for Paddle upload.
-- **License settings tab** — trial status, license key entry, "Buy WindowPane" link to Paddle checkout.
+- **License settings tab** — trial status, license key entry, "Buy Trast" link to Paddle checkout.
 
 ## Marketing & launch
 
