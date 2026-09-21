@@ -81,12 +81,6 @@ enum AppScanner {
         let bundle = Bundle(url: url)
         let bundleID = bundle?.bundleIdentifier
 
-        if let info = bundle?.infoDictionary {
-            if (info["LSUIElement"] as? Bool) == true {
-                return nil
-            }
-        }
-
         let name = (bundle?.infoDictionary?["CFBundleDisplayName"] as? String)
             ?? (bundle?.infoDictionary?["CFBundleName"] as? String)
             ?? FileManager.default.displayName(atPath: url.path)

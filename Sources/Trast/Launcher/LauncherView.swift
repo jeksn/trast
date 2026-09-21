@@ -62,8 +62,17 @@ struct LauncherView: View {
                 .opacity(opacity)
         )
         .ignoresSafeArea(edges: .all)
-        .onAppear { isFocused = true }
-        .onChange(of: viewModel.focusToken) { _ in isFocused = true }
+        .onAppear {
+            DispatchQueue.main.async { isFocused = true }
+        }
+        .onChange(of: viewModel.focusToken) { _ in
+            DispatchQueue.main.async { isFocused = true }
+        }
+        .onChange(of: viewModel.showsActions) { showsActions in
+            if !showsActions {
+                DispatchQueue.main.async { isFocused = true }
+            }
+        }
         .onExitCommand { LauncherController.shared.handleEscape() }
     }
 

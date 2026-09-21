@@ -314,7 +314,6 @@ final class LauncherViewModel: ObservableObject {
         let ids = categoryItems.map(\.id)
         let recentIDs = UsageTracker.shared.sortedByRecent(ids)
         let idOrder = Dictionary(uniqueKeysWithValues: recentIDs.enumerated().map { ($1, $0) })
-        let maxResults = 8
         return categoryItems
             .sorted { (a, b) in
                 let ia = idOrder[a.id] ?? Int.max
@@ -322,8 +321,6 @@ final class LauncherViewModel: ObservableObject {
                 if ia != ib { return ia < ib }
                 return a.title.localizedCaseInsensitiveCompare(b.title) == .orderedAscending
             }
-            .prefix(maxResults)
-            .map { $0 }
     }
 
     private static let modeAnimation = Animation.easeInOut(duration: 0.18)

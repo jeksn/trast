@@ -1,5 +1,5 @@
 .build/
-WindowPane.app/
+Trast.app/
 dist/
 *.xcodeproj
 .DS_Store
