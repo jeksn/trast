@@ -12,9 +12,16 @@ final class SnippetExpander {
     /// Pause before deleting the keyword: lets the final physical keystroke
     /// finish so synthetic events never race real ones still in flight.
     private static let settleInterval: TimeInterval = 0.03
-    /// Pacing between injected keystrokes: rapid keyDown/keyUp pairs get
-    /// coalesced and characters are dropped.
-    private static let keystrokeInterval: TimeInterval = 0.0015
+    /// Gap between a synthetic keyDown and its keyUp: zero-length presses get
+    /// filtered as noise by some apps.
+    private static let keyPressInterval: TimeInterval = 0.006
+    /// Pacing between injected keystrokes: events arriving faster than a
+    /// display frame (~16ms) get coalesced by apps and characters are dropped
+    /// (seen as mangled expansions and keyword residue).
+    private static let keystrokeInterval: TimeInterval = 0.012
+    /// Pause between the backspace phase and the injection phase so the app
+    /// has processed the deletions before insertions begin.
+    private static let phaseInterval: TimeInterval = 0.03
 
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
@@ -122,6 +129,15 @@ final class SnippetExpander {
             return true
         }
 
+        // Keystrokes landing in Trast's own UI (launcher search, settings
+        // fields) never expand: editing a snippet's keyword in Settings must
+        // not fire the snippet. Our panel/windows are the key window only
+        // while the user is actually typing into them.
+        if NSApp.keyWindow != nil {
+            buffer = ""
+            return true
+        }
+
         let flags = event.flags
         if flags.contains(.maskCommand) || flags.contains(.maskAlternate) || flags.contains(.maskControl) {
             // Modified keystrokes (paste, select all, shortcuts) never produce
@@ -205,6 +221,8 @@ final class SnippetExpander {
                 Thread.sleep(forTimeInterval: Self.keystrokeInterval)
             }
 
+            Thread.sleep(forTimeInterval: Self.phaseInterval)
+
             for scalar in resolved.unicodeScalars {
                 self.injectCharacter(scalar)
                 Thread.sleep(forTimeInterval: Self.keystrokeInterval)
@@ -216,6 +234,7 @@ final class SnippetExpander {
         let keyDown = CGEvent(keyboardEventSource: injectSource, virtualKey: 51, keyDown: true)
         keyDown?.setIntegerValueField(.eventSourceUserData, value: Self.syntheticTag)
         keyDown?.post(tap: .cghidEventTap)
+        Thread.sleep(forTimeInterval: Self.keyPressInterval)
 
         let keyUp = CGEvent(keyboardEventSource: injectSource, virtualKey: 51, keyDown: false)
         keyUp?.setIntegerValueField(.eventSourceUserData, value: Self.syntheticTag)
@@ -228,6 +247,7 @@ final class SnippetExpander {
         keyDown?.keyboardSetUnicodeString(stringLength: chars.count, unicodeString: chars)
         keyDown?.setIntegerValueField(.eventSourceUserData, value: Self.syntheticTag)
         keyDown?.post(tap: .cghidEventTap)
+        Thread.sleep(forTimeInterval: Self.keyPressInterval)
 
         let keyUp = CGEvent(keyboardEventSource: injectSource, virtualKey: 0, keyDown: false)
         keyUp?.setIntegerValueField(.eventSourceUserData, value: Self.syntheticTag)

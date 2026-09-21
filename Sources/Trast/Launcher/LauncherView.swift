@@ -236,7 +236,8 @@ struct LauncherRowView: View {
         for (i, char) in title.enumerated() {
             var attributed = AttributedString(String(char))
             if matchedSet.contains(i) {
-                attributed.font = .body.weight(.semibold)
+                attributed.font = .body.weight(.bold)
+                attributed.underlineStyle = Text.LineStyle(pattern: .solid)
             }
             result += attributed
         }
