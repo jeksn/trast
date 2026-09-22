@@ -56,10 +56,10 @@ struct MenuContent: View {
                 .keyboardShortcut(for: command)
             }
 
-            if !appShortcutStore.validShortcuts.isEmpty {
+            if !appShortcutStore.pinnedShortcuts.isEmpty {
                 Divider()
                 Menu("Shortcuts") {
-                    ForEach(appShortcutStore.validShortcuts) { shortcut in
+                    ForEach(appShortcutStore.pinnedShortcuts) { shortcut in
                         Button(shortcut.name.isEmpty ? "Untitled" : shortcut.name) {
                             AppShortcutStore.shared.activate(shortcut.id)
                         }
@@ -69,11 +69,14 @@ struct MenuContent: View {
             }
 
             Divider()
-            Button("Launcher…") {
+            Button("Open Launcher") {
                 LauncherController.shared.show()
             }
-            Button("Settings…") {
+            Button("Settings") {
                 openSettingsWindow()
+            }
+            Button("Check for Updates") {
+                UpdateChecker.checkForUpdates()
             }
             Button("Quit Trast") {
                 NSApp.terminate(nil)

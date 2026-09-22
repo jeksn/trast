@@ -76,7 +76,21 @@ enum AppShortcutCodableTests {
             t.check(decoded.bundleURL == nil, "bundleURL should default to nil")
             t.check(decoded.urlString == nil, "urlString should default to nil")
             t.check(decoded.folderURL == nil, "folderURL should default to nil")
+            t.check(decoded.showInMenuBar == false, "showInMenuBar should default to false")
             t.check(decoded.id != UUID(), "id should be generated")
+        }
+
+        t.run("AppShortcut.showInMenuBarRoundTrip") {
+            let shortcut = AppShortcut(
+                name: "Pinned",
+                kind: .url,
+                urlString: "https://example.com",
+                showInMenuBar: true
+            )
+            let data = try JSONEncoder().encode(shortcut)
+            let decoded = try JSONDecoder().decode(AppShortcut.self, from: data)
+            t.check(decoded == shortcut, "round trip mismatch")
+            t.check(decoded.showInMenuBar, "showInMenuBar should round-trip as true")
         }
 
         t.run("AppShortcut.legacyIsURLMigration") {

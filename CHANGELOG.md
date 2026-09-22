@@ -10,9 +10,9 @@
 
 ## v0.6.0 — Rename to Trast (Sep 17, 2026)
 
-- Renamed from WindowPane to Trast across the entire app
+- Renamed from Trast to Trast across the entire app
 - New bundle ID `com.trast.app` and URL scheme `trast://`
-- Config migration: existing WindowPane settings auto-copied to Trast on first launch
+- Config migration: existing Trast settings auto-copied to Trast on first launch
 - Dynamic accessibility status in the menu bar (updates without relaunch)
 - Removed app name from the settings window title
 

@@ -21,6 +21,7 @@ struct AppShortcutEditorView: View {
                     }
                 }
                 .pickerStyle(.segmented)
+                Toggle("Show in Menu Bar", isOn: $shortcut.showInMenuBar)
             }
 
             switch shortcut.kind {

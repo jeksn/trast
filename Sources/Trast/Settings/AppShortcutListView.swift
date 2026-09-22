@@ -89,6 +89,11 @@ struct AppShortcutListView: View {
                 }
             }
             Spacer()
+            if shortcut.showInMenuBar {
+                Image(systemName: "menubar.dock.rectangle")
+                    .foregroundStyle(.secondary)
+                    .help("Shown in menu bar")
+            }
             if let shortcut = KeyboardShortcuts.getShortcut(for: HotkeyManager.appJumpName(for: shortcut.id)) {
                 Text(shortcut.hyperDescription)
                     .font(.system(size: 11, design: .monospaced))

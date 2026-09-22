@@ -14,6 +14,7 @@ public struct AppShortcut: Identifiable, Hashable, Codable, Sendable {
     public var bundleURL: URL?
     public var urlString: String?
     public var folderURL: URL?
+    public var showInMenuBar = false
 
     public init(
         id: UUID = UUID(),
@@ -22,7 +23,8 @@ public struct AppShortcut: Identifiable, Hashable, Codable, Sendable {
         bundleIdentifier: String? = nil,
         bundleURL: URL? = nil,
         urlString: String? = nil,
-        folderURL: URL? = nil
+        folderURL: URL? = nil,
+        showInMenuBar: Bool = false
     ) {
         self.id = id
         self.name = name
@@ -31,6 +33,7 @@ public struct AppShortcut: Identifiable, Hashable, Codable, Sendable {
         self.bundleURL = bundleURL
         self.urlString = urlString
         self.folderURL = folderURL
+        self.showInMenuBar = showInMenuBar
     }
 
     public var url: URL? {
@@ -59,6 +62,7 @@ public struct AppShortcut: Identifiable, Hashable, Codable, Sendable {
         case urlString
         case folderURL
         case isURL
+        case showInMenuBar
     }
 
     public init(from decoder: Decoder) throws {
@@ -77,6 +81,7 @@ public struct AppShortcut: Identifiable, Hashable, Codable, Sendable {
         bundleURL = try container.decodeIfPresent(URL.self, forKey: .bundleURL)
         urlString = try container.decodeIfPresent(String.self, forKey: .urlString)
         folderURL = try container.decodeIfPresent(URL.self, forKey: .folderURL)
+        showInMenuBar = try container.decodeIfPresent(Bool.self, forKey: .showInMenuBar) ?? false
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -88,5 +93,6 @@ public struct AppShortcut: Identifiable, Hashable, Codable, Sendable {
         try container.encodeIfPresent(bundleURL, forKey: .bundleURL)
         try container.encodeIfPresent(urlString, forKey: .urlString)
         try container.encodeIfPresent(folderURL, forKey: .folderURL)
+        try container.encode(showInMenuBar, forKey: .showInMenuBar)
     }
 }

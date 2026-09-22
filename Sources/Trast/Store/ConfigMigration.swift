@@ -5,7 +5,7 @@ enum ConfigMigration {
         let fm = FileManager.default
         guard let supportDir = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else { return }
 
-        let oldDir = supportDir.appendingPathComponent("WindowPane", isDirectory: true)
+        let oldDir = supportDir.appendingPathComponent("Trast", isDirectory: true)
         let newDir = supportDir.appendingPathComponent("Trast", isDirectory: true)
 
         guard fm.fileExists(atPath: oldDir.path),

@@ -27,6 +27,10 @@ final class AppShortcutStore: ObservableObject {
         shortcuts.filter(\.isValid)
     }
 
+    var pinnedShortcuts: [AppShortcut] {
+        shortcuts.filter { $0.isValid && $0.showInMenuBar }
+    }
+
     func appShortcut(withID id: UUID) -> AppShortcut? {
         shortcuts.first { $0.id == id }
     }
@@ -35,6 +39,7 @@ final class AppShortcutStore: ObservableObject {
     func add(_ shortcut: AppShortcut) -> AppShortcut {
         var newShortcut = shortcut
         newShortcut.id = UUID()
+        newShortcut.showInMenuBar = true
         shortcuts.append(newShortcut)
         save()
         HotkeyManager.shared.register(newShortcut)

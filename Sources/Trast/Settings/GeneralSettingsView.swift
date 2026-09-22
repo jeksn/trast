@@ -136,6 +136,9 @@ struct GeneralSettingsView: View {
                         }
                     }
                 Toggle("Check for updates on launch", isOn: $autoCheckUpdates)
+                Button("Check for Updates…") {
+                    UpdateChecker.checkForUpdates()
+                }
                 HStack {
                     Label(
                         isTrusted ? "Accessibility granted" : "Accessibility permission required",

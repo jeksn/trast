@@ -57,7 +57,7 @@ Resize and move the focused window into any layout you define — halves, thirds
 
 ### Other
 
-- **App, URL & Folder shortcuts** — bind global hotkeys to launch/activate an app, open a URL, or open a folder or file in Finder / its default app
+- **App, URL & Folder shortcuts** — bind global hotkeys to launch/activate an app, open a URL, or open a folder or file in Finder / its default app; pin shortcuts to the menu bar
 - **URL scheme** — apply commands from scripts, shells, or other apps
 - **Export / Import** — back up and restore all commands and shortcuts to a JSON file
 - **Launch at login**
@@ -100,7 +100,7 @@ Re-grant Accessibility one last time — after that, rebuilds keep the permissio
 
 ## Usage
 
-- **Menu bar icon** — lists the commands you've pinned (toggle per command in Settings), plus Launcher and Settings
+- **Menu bar icon** — lists the commands and shortcuts you've pinned (toggle per item in Settings), plus Launcher, Settings, and Check for Updates
 - **Launcher** — press the global hotkey (configurable in Settings → General); type to search everything, or Tab to cycle through the actions grid and back to search; ↑↓ to navigate results, ←→↑↓ in the grid, Return to select, Esc steps back (category → actions grid → close), Cmd+, to open Settings, Cmd+1..6 to jump to a category
 - **Clipboard History** — press the clipboard hotkey (configurable in Settings → Window) to open the Launcher on the Clipboard tab, or get there via the actions grid / search; type to filter the full history and select to paste into the frontmost app
 - **Settings** — sidebar navigation: General, Window, Commands, Shortcuts, Snippets, Clipboard
@@ -110,7 +110,7 @@ Re-grant Accessibility one last time — after that, rebuilds keep the permissio
 
 | Section | Contents |
 | --- | --- |
-| **General** | Launcher hotkey, transparency slider, Clipboard/Snippets tab toggles, snippet expansion toggle, hyper key toggle and ✦ display, export/import, launch at login, update checks, Accessibility status, URL scheme reference |
+| **General** | Launcher hotkey, transparency slider, Clipboard/Snippets tab toggles, snippet expansion toggle, hyper key toggle and ✦ display, export/import, launch at login, update checks (automatic on launch plus a manual Check for Updates button), Accessibility status, URL scheme reference |
 | **Window** | Clipboard History / Restore / Next Window hotkeys, action hotkeys (Center, Move Left/Right/Up/Down, Next Display), edge gap presets |
 | **Commands** | Add, duplicate, delete, and edit window commands: name, hotkey, size, anchor, offsets, pinning, with a live preview |
 | **Shortcuts** | Add shortcuts of three kinds (App, URL/Link, Folder/File), each with its own global hotkey; grouped by type |
