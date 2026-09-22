@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.7.0 — Native hyper key (Sep 22, 2026)
+
+- Caps Lock → ⌃⌥⇧⌘: hold Caps Lock as a "hyper" modifier, a combo no other app uses, and bind conflict-free hotkeys to window commands and shortcuts; a lone Caps Lock tap does nothing (Settings → General → Hyper Key)
+- While the hyper key is enabled, Caps Lock is remapped at the driver level (to F18) so the lock state and LED stay off; reverts when disabled or Trast quits
+- Hyper combos display as ✦K in the command list, Launcher, and the shortcut recorder — record Caps Lock + key directly
+- Custom hotkey recorder replaces KeyboardShortcuts.Recorder everywhere: same storage, ✦ rendering, menu key equivalents (⌘W etc.) record instead of firing, no packaged-app resource bundle crash
+- Requires Accessibility and Input Monitoring permissions; quit Hyperkey.app or other Caps Lock remappers first
+
 ## v0.6.0 — Rename to Trast (Sep 17, 2026)
 
 - Renamed from WindowPane to Trast across the entire app
