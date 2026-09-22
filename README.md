@@ -2,7 +2,7 @@
 
 Window management and a Spotlight-like launcher for macOS.
 
-Resize and move the focused window into any layout you define — halves, thirds, sixths, or custom percentages with offsets — and trigger your presets with global hotkeys, the Launcher, or a URL. The Launcher also searches and launches installed apps, manages clipboard history, and expands text snippets.
+Resize and move the focused window into any layout you define — halves, thirds, sixths, or custom percentages with offsets — and trigger your presets with global hotkeys, the Launcher, or a URL. The Launcher also searches and launches installed apps, manages clipboard history, and expands text snippets. A native hyper key turns Caps Lock into ⌃⌥⇧⌘ for conflict-free hotkeys.
 
 ## Features
 
@@ -48,6 +48,13 @@ Resize and move the focused window into any layout you define — halves, thirds
 - **Snippet management** — create, edit, enable/disable, and delete snippets in Settings → Snippets. Each snippet has a name, a keyword (what you type to trigger it), and the content (with optional template variables)
 - **Launcher integration** — snippets appear in the Snippets tab and in All search results; selecting from the launcher copies the resolved text to the clipboard
 
+### Hyper key
+
+- **Caps Lock → ⌃⌥⇧⌘** — hold Caps Lock as a "hyper" modifier, a combo no other app uses, and bind conflict-free hotkeys to your window commands and shortcuts. A lone Caps Lock tap does nothing (Settings → General → Hyper Key)
+- **✦ display** — hyper combos render as `✦K` in the command list, the Launcher, and Trast's built-in shortcut recorder; record them directly by holding Caps Lock while recording
+- **No lock, no LED** — while enabled, Caps Lock is remapped at the driver level (to F18) so the lock state and LED stay off; this reverts when the hyper key is disabled or Trast quits, and replaces any Caps Lock remap from System Settings → Keyboard → Modifier Keys while active
+- Requires Accessibility and Input Monitoring permissions; quit other Caps Lock remappers (e.g. Hyperkey.app) first — two active remappers on the same key conflict
+
 ### Other
 
 - **App, URL & Folder shortcuts** — bind global hotkeys to launch/activate an app, open a URL, or open a folder or file in Finder / its default app
@@ -71,7 +78,7 @@ Scripts/package_app.sh        # release build → ./Trast.app
 Scripts/install.sh --force    # copy to /Applications
 ```
 
-Launch the app and grant **Accessibility** permission when prompted (System Settings → Privacy & Security → Accessibility). Window control on macOS requires it. Snippet expansion additionally requires **Input Monitoring** permission (prompted on first enable).
+Launch the app and grant **Accessibility** permission when prompted (System Settings → Privacy & Security → Accessibility). Window control on macOS requires it. Snippet expansion and the hyper key additionally require **Input Monitoring** permission (prompted on first enable).
 
 ### Stable permissions across rebuilds (recommended)
 
@@ -97,12 +104,13 @@ Re-grant Accessibility one last time — after that, rebuilds keep the permissio
 - **Launcher** — press the global hotkey (configurable in Settings → General); type to search everything, or Tab to cycle through the actions grid and back to search; ↑↓ to navigate results, ←→↑↓ in the grid, Return to select, Esc steps back (category → actions grid → close), Cmd+, to open Settings, Cmd+1..6 to jump to a category
 - **Clipboard History** — press the clipboard hotkey (configurable in Settings → Window) to open the Launcher on the Clipboard tab, or get there via the actions grid / search; type to filter the full history and select to paste into the frontmost app
 - **Settings** — sidebar navigation: General, Window, Commands, Shortcuts, Snippets, Clipboard
+- **Hyper key** — enable in Settings → General, then hold Caps Lock while recording a command or shortcut hotkey; it registers as ⌃⌥⇧⌘+key and displays as `✦K`
 
 ### Settings
 
 | Section | Contents |
 | --- | --- |
-| **General** | Launcher hotkey, transparency slider, Clipboard/Snippets tab toggles, snippet expansion toggle, export/import, launch at login, update checks, Accessibility status, URL scheme reference |
+| **General** | Launcher hotkey, transparency slider, Clipboard/Snippets tab toggles, snippet expansion toggle, hyper key toggle and ✦ display, export/import, launch at login, update checks, Accessibility status, URL scheme reference |
 | **Window** | Clipboard History / Restore / Next Window hotkeys, action hotkeys (Center, Move Left/Right/Up/Down, Next Display), edge gap presets |
 | **Commands** | Add, duplicate, delete, and edit window commands: name, hotkey, size, anchor, offsets, pinning, with a live preview |
 | **Shortcuts** | Add shortcuts of three kinds (App, URL/Link, Folder/File), each with its own global hotkey; grouped by type |
@@ -151,6 +159,7 @@ Scripts/update.sh
 - The Launcher is a borderless, non-activating `NSPanel` that stays floating across all spaces; it captures the frontmost window on open so window commands target the right app
 - Clipboard history polls `NSPasteboard.general.changeCount` every 0.5s and stores items in a versioned JSON file
 - Snippet expansion uses a listen-only `CGEvent` tap to detect keywords and injects expansion text via `CGEvent`. Template variables (`{{date}}`, `{{clipboard}}`, `{{time}}`) are resolved before injection
+- The hyper key remaps Caps Lock to F18 at the HID driver level (`hidutil`, so the lock state and LED stay off), detects press/release via IOKit HID, and rewrites session events to carry ⌃⌥⇧⌘ while held — so shortcut recorders and hotkey matching see the full combo in any app
 - Commands persist in `~/Library/Application Support/Trast/commands.json`; app/URL/folder shortcuts in `appShortcuts.json`; clipboard history in `clipboard.json`; snippets in `snippets.json`
 
 ## Development

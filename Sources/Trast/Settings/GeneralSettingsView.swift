@@ -9,6 +9,8 @@ import CoreGraphics
 struct GeneralSettingsView: View {
     @AppStorage(AppSettings.autoCheckUpdatesKey) private var autoCheckUpdates: Bool = true
     @AppStorage(AppSettings.snippetsEnabledKey) private var snippetsEnabled: Bool = false
+    @AppStorage(AppSettings.hyperKeyEnabledKey) private var hyperKeyEnabled: Bool = false
+    @AppStorage(AppSettings.hyperSymbolKey) private var hyperSymbol: Bool = true
     @AppStorage(AppSettings.launcherOpacityKey) private var launcherOpacity: Double = 0.85
     @AppStorage(AppSettings.launcherClipboardTabKey) private var showClipboardTab: Bool = true
     @AppStorage(AppSettings.launcherSnippetsTabKey) private var showSnippetsTab: Bool = true
@@ -20,7 +22,7 @@ struct GeneralSettingsView: View {
     var body: some View {
         Form {
             Section {
-                KeyboardShortcuts.Recorder("Launcher:", name: HotkeyManager.openLauncher)
+                HotkeyRecorderView("Launcher:", name: HotkeyManager.openLauncher)
                 Slider(value: $launcherOpacity, in: 0.3...1.0, step: 0.05) {
                     Text("Transparency")
                 } minimumValueLabel: {
@@ -64,6 +66,50 @@ struct GeneralSettingsView: View {
                 Text("Snippets")
             } footer: {
                 Text("Type a snippet keyword anywhere to expand it. Requires Input Monitoring permission (prompted on first enable) and Accessibility for text injection.")
+            }
+
+            Section {
+                Toggle("Enable hyper key (Caps Lock → ⌃⌥⇧⌘)", isOn: $hyperKeyEnabled)
+                    .onChange(of: hyperKeyEnabled) { enabled in
+                        if enabled {
+                            HyperkeyEngine.shared.start()
+                            isTrusted = Accessibility.isTrusted
+                            inputMonitoringGranted = CGPreflightListenEventAccess()
+                        } else {
+                            HyperkeyEngine.shared.stop()
+                        }
+                    }
+                if hyperKeyEnabled && !isTrusted {
+                    HStack {
+                        Label(
+                            "Accessibility permission required",
+                            systemImage: "exclamationmark.triangle.fill"
+                        )
+                        .foregroundStyle(Color.orange)
+                        Spacer()
+                        Button("Open System Settings") {
+                            Accessibility.openSystemSettings()
+                        }
+                    }
+                }
+                if hyperKeyEnabled && !inputMonitoringGranted {
+                    HStack {
+                        Label(
+                            "Input Monitoring permission required",
+                            systemImage: "exclamationmark.triangle.fill"
+                        )
+                        .foregroundStyle(Color.orange)
+                        Spacer()
+                        Button("Open System Settings") {
+                            Accessibility.openSystemSettings()
+                        }
+                    }
+                }
+                Toggle("Show as ✦ in shortcut labels", isOn: $hyperSymbol)
+            } header: {
+                Text("Hyper Key")
+            } footer: {
+                Text("Hold Caps Lock to send ⌃⌥⇧⌘ — a modifier combo no other app uses, ideal for Trast hotkeys. A lone Caps Lock tap does nothing. While enabled, Caps Lock is remapped at the driver level (to F18) so the lock state and LED stay off; this reverts when disabled and replaces any Caps Lock remap from System Settings. Requires Accessibility and Input Monitoring. Quit Hyperkey.app or other Caps Lock remappers first — two active remappers on the same key conflict.")
             }
 
             Section {

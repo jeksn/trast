@@ -201,7 +201,7 @@ struct LauncherRowView: View {
             Spacer()
             if let name = item.hotkeyName,
                let shortcut = KeyboardShortcuts.getShortcut(for: name) {
-                Text(shortcut.description)
+                Text(shortcut.hyperDescription)
                     .font(.system(size: 12, design: .monospaced))
                     .foregroundStyle(.secondary)
             }

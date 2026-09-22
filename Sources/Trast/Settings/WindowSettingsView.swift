@@ -8,14 +8,14 @@ struct WindowSettingsView: View {
     var body: some View {
         Form {
             Section("Hotkeys") {
-                KeyboardShortcuts.Recorder("Clipboard History:", name: HotkeyManager.openClipboard)
-                KeyboardShortcuts.Recorder("Restore Previous Size:", name: HotkeyManager.restore)
-                KeyboardShortcuts.Recorder("Next Window:", name: HotkeyManager.nextWindow)
+                HotkeyRecorderView("Clipboard History:", name: HotkeyManager.openClipboard)
+                HotkeyRecorderView("Restore Previous Size:", name: HotkeyManager.restore)
+                HotkeyRecorderView("Next Window:", name: HotkeyManager.nextWindow)
             }
 
             Section {
                 ForEach(WindowAction.all) { action in
-                    KeyboardShortcuts.Recorder("\(action.name):", name: HotkeyManager.actionName(action.id))
+                    HotkeyRecorderView("\(action.name):", name: HotkeyManager.actionName(action.id))
                 }
             } header: {
                 Text("Actions")

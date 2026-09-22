@@ -7,6 +7,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         AppScanner.refresh()
         ClipboardMonitor.shared.start()
         SnippetExpander.shared.start()
+        HyperkeyEngine.shared.start()
         HotkeyManager.shared.registerAll(for: CommandStore.shared)
         HotkeyManager.shared.registerAllAppJumps(for: AppShortcutStore.shared)
 
@@ -20,6 +21,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if AppSettings.autoCheckUpdates {
             UpdateChecker.checkForUpdatesOnLaunch()
         }
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        // Reverts the Caps Lock driver remap so it doesn't linger until reboot.
+        HyperkeyEngine.shared.stop()
     }
 
     @objc private func handleGetURLEvent(_ event: NSAppleEventDescriptor, withReplyEvent reply: NSAppleEventDescriptor) {

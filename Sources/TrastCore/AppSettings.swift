@@ -13,6 +13,8 @@ public enum AppSettings {
     public static let clipboardAutoClearKey = "clipboardAutoClearSeconds"
     public static let clipboardEnabledKey = "clipboardMonitorEnabled"
     public static let snippetsEnabledKey = "snippetsEnabled"
+    public static let hyperKeyEnabledKey = "hyperKeyEnabled"
+    public static let hyperSymbolKey = "hyperSymbol"
     public static let launcherOpacityKey = "launcherOpacity"
     public static let launcherClipboardTabKey = "launcherClipboardTab"
     public static let launcherSnippetsTabKey = "launcherSnippetsTab"
@@ -31,6 +33,14 @@ public enum AppSettings {
 
     public static var snippetsEnabled: Bool {
         UserDefaults.standard.object(forKey: snippetsEnabledKey) as? Bool ?? false
+    }
+
+    public static var hyperKeyEnabled: Bool {
+        UserDefaults.standard.object(forKey: hyperKeyEnabledKey) as? Bool ?? false
+    }
+
+    public static var hyperSymbol: Bool {
+        UserDefaults.standard.object(forKey: hyperSymbolKey) as? Bool ?? true
     }
 
     public static var launcherOpacity: Double {

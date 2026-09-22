@@ -80,7 +80,7 @@ struct CommandListView: View {
                     .help("Shown in menu bar")
             }
             if let shortcut = KeyboardShortcuts.getShortcut(for: HotkeyManager.name(for: command.id)) {
-                Text(shortcut.description)
+                Text(shortcut.hyperDescription)
                     .font(.system(size: 11, design: .monospaced))
                     .foregroundStyle(.secondary)
             }

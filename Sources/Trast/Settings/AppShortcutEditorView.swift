@@ -33,7 +33,7 @@ struct AppShortcutEditorView: View {
             }
 
             Section("Hotkey") {
-                KeyboardShortcuts.Recorder("Hotkey:", name: HotkeyManager.appJumpName(for: shortcut.id))
+                HotkeyRecorderView("Hotkey:", name: HotkeyManager.appJumpName(for: shortcut.id))
             }
 
             Section {

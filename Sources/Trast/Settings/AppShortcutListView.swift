@@ -90,7 +90,7 @@ struct AppShortcutListView: View {
             }
             Spacer()
             if let shortcut = KeyboardShortcuts.getShortcut(for: HotkeyManager.appJumpName(for: shortcut.id)) {
-                Text(shortcut.description)
+                Text(shortcut.hyperDescription)
                     .font(.system(size: 11, design: .monospaced))
                     .foregroundStyle(.secondary)
             }

@@ -13,7 +13,7 @@ struct CommandEditorView: View {
         Form {
             Section("General") {
                 TextField("Name", text: $command.name)
-                KeyboardShortcuts.Recorder("Hotkey:", name: HotkeyManager.name(for: command.id))
+                HotkeyRecorderView("Hotkey:", name: HotkeyManager.name(for: command.id))
                 Toggle("Show in Menu Bar", isOn: $command.showInMenuBar)
             }
             Section("Size") {
