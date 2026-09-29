@@ -69,5 +69,38 @@ enum FuzzyMatchTests {
             t.check(FuzzyMatch.score(query: "lh", target: "Left Half") != nil, "lh should still match")
             t.check(FuzzyMatch.score(query: "lef", target: "Left Half")! > FuzzyMatch.score(query: "lf", target: "Left Half")!, "prefix bonus preserved")
         }
+
+        t.run("FuzzyMatch.characterScoreMatchesStringScore") {
+            let queries = ["lh", "lef", "lf", "mxmz", "xz", ""]
+            let targets = ["Left Half", "Maximize", ""]
+            for query in queries {
+                for target in targets {
+                    let viaString = FuzzyMatch.score(query: query, target: target)
+                    let viaChars = FuzzyMatch.score(query: Array(query.lowercased()), target: Array(target.lowercased()))
+                    t.check(viaString == viaChars, "score mismatch for \(query) vs \(target): \(String(describing: viaString)) != \(String(describing: viaChars))")
+                }
+            }
+        }
+
+        t.run("FuzzyMatch.indexedRankingMatchesLegacyRanking") {
+            let items = ["Left Half", "Maximize", "Half Left", "Safari", "Sublime Text"]
+            for query in ["left", "half", "max", "s", "xyzzy", ""] {
+                let legacy = FuzzyMatch.ranked(items, query: query) { $0 }
+                let indexed = FuzzyMatch.rankedIndexed(items.map { FuzzyMatch.Indexed(item: $0, text: $0) }, query: query).map(\.item)
+                t.check(legacy == indexed, "indexed ranking diverged for '\(query)': \(legacy) != \(indexed)")
+            }
+        }
+
+        t.run("FuzzyMatch.indexedEmptyQueryKeepsOrder") {
+            let indexed = ["A", "B", "C"].map { FuzzyMatch.Indexed(item: $0, text: $0) }
+            let ranked = FuzzyMatch.rankedIndexed(indexed, query: "").map(\.item)
+            t.check(ranked == ["A", "B", "C"], "order should be preserved, got \(ranked)")
+        }
+
+        t.run("FuzzyMatch.indexedMatchesCaseInsensitively") {
+            let entries = [FuzzyMatch.Indexed(item: "Safari", text: "Safari")]
+            t.check(FuzzyMatch.rankedIndexed(entries, query: "SAF").map(\.item) == ["Safari"], "uppercase query should match via precomputed lowercase text")
+            t.check(FuzzyMatch.rankedIndexed(entries, query: "saf").map(\.item) == ["Safari"], "lowercase query should match too")
+        }
     }
 }

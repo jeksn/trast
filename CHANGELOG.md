@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.8.0 — Scratchpad, launcher performance (Sep 29, 2026)
+
+- Launcher Scratchpad: a category for jotting quick notes, with its own hotkey (Settings → Scratchpad to record it), copy-to-clipboard and clear buttons; text persists between opens
+- Launcher performance: results are computed once per keystroke from a precomputed search index instead of re-ranking every item on every row render — search and arrow-key navigation now track keystrokes with no lag; searching inside a category only scores that category's items
+- Snippet expansion reworked: selects the typed keyword and pastes the expansion in one shot instead of backspacing and typing — fixes keyword residue in browser address bars and multiline-safe, single-frame expansion; clipboard history stays clean (pasteboard saved and restored)
+- Next Window cycling fixed for apps with three or more windows: a stable per-app round-robin order replaces the z-order-following index math that degraded to toggling the top two windows
+- App icons downsampled once at scan time instead of rescaling full-size icons on every row render
+
 ## v0.7.0 — Native hyper key (Sep 22, 2026)
 
 - Caps Lock → ⌃⌥⇧⌘: hold Caps Lock as a "hyper" modifier, a combo no other app uses, and bind conflict-free hotkeys to window commands and shortcuts; a lone Caps Lock tap does nothing (Settings → General → Hyper Key)

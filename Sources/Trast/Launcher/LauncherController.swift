@@ -17,6 +17,17 @@ final class LauncherController: NSObject, NSWindowDelegate {
     private var keyMonitor: Any?
     private var resizeCancellable: AnyCancellable?
     private var lastTargetFrame: NSRect?
+    private var resizeScheduled = false
+    private var lastLayoutSignature: LayoutSignature?
+
+    /// Everything that determines the panel's content height. Selection and
+    /// hover changes don't affect it, so they don't need a layout pass.
+    private struct LayoutSignature: Equatable {
+        let showsActions: Bool
+        let category: LauncherViewModel.Category
+        let sectionTitles: [String]
+        let rowCount: Int
+    }
 
     func toggle() {
         if panel?.isVisible == true {
@@ -207,14 +218,32 @@ final class LauncherController: NSObject, NSWindowDelegate {
 
     private func observeContentChanges() {
         resizeCancellable = viewModel.objectWillChange.sink { [weak self] _ in
-            DispatchQueue.main.async {
-                self?.resizePanelToFit()
+            // One input change fires objectWillChange several times (query,
+            // selection, results); coalesce them into a single resize pass.
+            guard let self, !self.resizeScheduled else { return }
+            self.resizeScheduled = true
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                self.resizeScheduled = false
+                self.resizePanelToFit()
             }
         }
     }
 
     private func resizePanelToFit() {
         guard let panel, let hostingView = panel.contentView as? NSHostingView<LauncherView> else { return }
+
+        let signature = LayoutSignature(
+            showsActions: viewModel.showsActions,
+            category: viewModel.selectedCategory,
+            sectionTitles: viewModel.sections.map(\.title),
+            rowCount: viewModel.filtered.count
+        )
+        // The content height can't have changed (selection move, hover);
+        // skip the fittingSize measurement, which forces a full layout pass.
+        if signature == lastLayoutSignature, lastTargetFrame != nil { return }
+        lastLayoutSignature = signature
+
         let fittingSize = hostingView.fittingSize
         var height = min(fittingSize.height, 440)
         height = max(height, 52)

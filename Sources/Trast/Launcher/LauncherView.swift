@@ -1,6 +1,5 @@
 import TrastCore
 import SwiftUI
-import KeyboardShortcuts
 import AppKit
 
 struct LauncherView: View {
@@ -46,7 +45,12 @@ struct LauncherView: View {
                                         }
                                     }
                                     ForEach(section.items) { item in
-                                        LauncherRowView(item: item, isSelected: item.id == viewModel.filtered[safe: viewModel.selectedIndex]?.id, query: viewModel.query)
+                                        LauncherRowView(
+                                            item: item,
+                                            isSelected: item.id == selectedID,
+                                            query: viewModel.query,
+                                            hotkeyDisplay: viewModel.hotkeyDisplay(for: item)
+                                        )
                                             .id(item.id)
                                             .onTapGesture { onSelect(item) }
                                     }
@@ -226,6 +230,10 @@ struct LauncherView: View {
         }
     }
 
+    private var selectedID: String? {
+        viewModel.filtered[safe: viewModel.selectedIndex]?.id
+    }
+
     private var shouldShowSectionHeader: Bool {
         viewModel.selectedCategory == .all && viewModel.sections.count > 1
     }
@@ -296,6 +304,7 @@ struct LauncherRowView: View {
     let item: LauncherItem
     let isSelected: Bool
     let query: String
+    let hotkeyDisplay: String?
 
     @State private var isHovered = false
 
@@ -320,9 +329,8 @@ struct LauncherRowView: View {
                     .lineLimit(1)
             }
             Spacer()
-            if let name = item.hotkeyName,
-               let shortcut = KeyboardShortcuts.getShortcut(for: name) {
-                Text(shortcut.hyperDescription)
+            if let hotkeyDisplay {
+                Text(hotkeyDisplay)
                     .font(.system(size: 12, design: .monospaced))
                     .foregroundStyle(.secondary)
             }
@@ -352,16 +360,34 @@ struct LauncherRowView: View {
             return Text(title)
         }
 
+        // Build matched/unmatched runs instead of one AttributedString per
+        // character — the per-character version allocated a string per glyph
+        // per row on every keystroke.
         let matchedSet = Set(indices)
         var result = AttributedString()
-        for (i, char) in title.enumerated() {
-            var attributed = AttributedString(String(char))
-            if matchedSet.contains(i) {
+        var run = ""
+        var runIsMatched = matchedSet.contains(0)
+
+        func flushRun() {
+            guard !run.isEmpty else { return }
+            var attributed = AttributedString(run)
+            if runIsMatched {
                 attributed.font = .body.weight(.bold)
                 attributed.underlineStyle = Text.LineStyle(pattern: .solid)
             }
             result += attributed
+            run = ""
         }
+
+        for (offset, char) in title.enumerated() {
+            let isMatched = matchedSet.contains(offset)
+            if isMatched != runIsMatched {
+                flushRun()
+                runIsMatched = isMatched
+            }
+            run.append(char)
+        }
+        flushRun()
         return Text(result)
     }
 }

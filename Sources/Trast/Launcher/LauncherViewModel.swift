@@ -32,6 +32,25 @@ enum LauncherAction: String, CaseIterable, Identifiable {
 
 }
 
+enum LauncherIconCache {
+    private static let cache: NSCache<NSString, NSImage> = {
+        let cache = NSCache<NSString, NSImage>()
+        cache.countLimit = 100
+        return cache
+    }()
+
+    /// Decoded clipboard thumbnails, cached by entry id so image rows don't
+    /// re-decode their data on every render.
+    static func clipboardImage(for item: ClipboardItem) -> NSImage? {
+        guard item.kind == .image, let data = item.imageData else { return nil }
+        let key = item.id.uuidString as NSString
+        if let cached = cache.object(forKey: key) { return cached }
+        guard let image = NSImage(data: data) else { return nil }
+        cache.setObject(image, forKey: key)
+        return image
+    }
+}
+
 enum LauncherItem: Identifiable {
     case command(WindowCommand, hotkeyName: KeyboardShortcuts.Name)
     case appShortcut(AppShortcut, hotkeyName: KeyboardShortcuts.Name)
@@ -116,8 +135,7 @@ enum LauncherItem: Identifiable {
         case .installedApp(let app, _):
             return app.icon
         case .clipboardEntry(let item):
-            guard item.kind == .image, let data = item.imageData else { return nil }
-            return NSImage(data: data)
+            return LauncherIconCache.clipboardImage(for: item)
         case .command, .appShortcut, .launcherAction, .snippetEntry, .categoryEntry:
             return nil
         }
@@ -178,6 +196,13 @@ struct LauncherSection: Identifiable {
 }
 
 final class LauncherViewModel: ObservableObject {
+    /// A launch candidate with everything the search path needs resolved once
+    /// when the item list is built, instead of on every keystroke.
+    private struct SearchEntry {
+        let item: LauncherItem
+        let section: String
+        let hotkeyDisplay: String?
+    }
     enum Category: String, CaseIterable, Hashable {
         case all
         case commands
@@ -239,17 +264,49 @@ final class LauncherViewModel: ObservableObject {
 
     @Published var placeholder: String = placeholders[0]
     @Published var selectedCategory: Category = .all {
-        didSet { selectedIndex = 0 }
+        didSet { selectedIndex = 0; updateResults() }
     }
     @Published var query = "" {
-        didSet { selectedIndex = 0 }
+        didSet { selectedIndex = 0; updateResults() }
     }
     @Published var selectedIndex = 0
     @Published var focusToken = UUID()
     @Published var showsActions = false
     @Published var gridIndex = 0
+    @Published private(set) var filtered: [LauncherItem] = []
+    @Published private(set) var sections: [LauncherSection] = []
 
-    var items: [LauncherItem] = []
+    var items: [LauncherItem] = [] {
+        didSet { rebuildIndex(); updateResults() }
+    }
+
+    /// Precomputed search index: item list → search text, lowercased matching
+    /// buffer, section, and resolved hotkey label, all computed once per
+    /// item-list rebuild (every panel open) instead of per keystroke.
+    private var index: [FuzzyMatch.Indexed<SearchEntry>] = []
+
+    /// Hotkey display strings keyed by `LauncherItem.id` (which is the
+    /// `KeyboardShortcuts.Name` for hotkey-carrying items).
+    private var hotkeyDisplays: [String: String] = [:]
+
+    func hotkeyDisplay(for item: LauncherItem) -> String? {
+        guard let name = item.hotkeyName else { return nil }
+        return hotkeyDisplays[name.rawValue]
+    }
+
+    private func rebuildIndex() {
+        hotkeyDisplays.removeAll()
+        index = items.map { item in
+            let hotkeyDisplay = item.hotkeyName.flatMap {
+                KeyboardShortcuts.getShortcut(for: $0)?.hyperDescription
+            }
+            if let hotkeyDisplay, let name = item.hotkeyName {
+                hotkeyDisplays[name.rawValue] = hotkeyDisplay
+            }
+            let entry = SearchEntry(item: item, section: item.section, hotkeyDisplay: hotkeyDisplay)
+            return FuzzyMatch.Indexed(item: entry, text: item.searchText)
+        }
+    }
 
     func reset() {
         placeholder = Self.placeholders.randomElement() ?? Self.placeholders[0]
@@ -261,48 +318,60 @@ final class LauncherViewModel: ObservableObject {
         gridIndex = 0
     }
 
-    var filtered: [LauncherItem] {
+    /// Recomputes `filtered` and `sections` exactly once per input change.
+    /// These are read repeatedly by the view body (once per row), so they are
+    /// stored instead of computed.
+    private func updateResults() {
         let trimmed = query.trimmingCharacters(in: .whitespaces)
 
         if trimmed.isEmpty {
             if selectedCategory == .all {
-                return []
+                filtered = []
+                sections = []
+                return
             }
-            return recentItems(for: selectedCategory)
+            let recent = recentItems(for: selectedCategory)
+            filtered = recent
+            sections = Self.makeSections(from: recent)
+            return
         }
 
-        let ranked = FuzzyMatch.ranked(items, query: query) { $0.searchText }
-        return filterByCategory(ranked)
+        // Scope to the category before ranking so an Apps search doesn't
+        // fuzzy-score commands, snippets, and clipboard items.
+        let scoped = index.filter { includesInCategory($0.item) }
+        let ranked: [LauncherItem] = FuzzyMatch.rankedIndexed(scoped, query: query).map { $0.item.item }
+        filtered = ranked
+        sections = Self.makeSections(from: ranked)
     }
 
-    private func filterByCategory(_ items: [LauncherItem]) -> [LauncherItem] {
+    private func includesInCategory(_ entry: SearchEntry) -> Bool {
         switch selectedCategory {
         case .all:
-            return items.filter { item in
-                switch item {
-                case .clipboardEntry, .snippetEntry:
-                    return false
-                default:
-                    return true
-                }
-            }
+            return entry.section != "Clipboard" && entry.section != "Snippets"
         case .commands:
-            return items.filter { $0.section == "Window Commands" || $0.section == "Actions" }
+            return entry.section == "Window Commands" || entry.section == "Actions"
         case .shortcuts:
-            return items.filter { $0.section == "Shortcuts" }
+            return entry.section == "Shortcuts"
         case .applications:
-            return items.filter { $0.section == "Applications" }
+            return entry.section == "Applications"
         case .clipboard:
-            return items.filter { $0.section == "Clipboard" }
+            return entry.section == "Clipboard"
         case .snippets:
-            return items.filter { $0.section == "Snippets" }
+            return entry.section == "Snippets"
         case .scratchpad:
-            return []
+            return false
         case .trast:
-            return items.filter { $0.section == "Trast" }.filter {
-                if case .launcherAction(.clipboardHistory) = $0 { return false }
-                return true
-            }
+            if case .launcherAction(.clipboardHistory) = entry.item { return false }
+            return entry.section == "Trast"
+        }
+    }
+
+    private static let sectionOrder = ["Browse", "Window Commands", "Actions", "Shortcuts", "Applications", "Clipboard", "Snippets", "Trast"]
+
+    private static func makeSections(from items: [LauncherItem]) -> [LauncherSection] {
+        sectionOrder.compactMap { title in
+            let sectionItems = items.filter { $0.section == title }
+            return sectionItems.isEmpty ? nil : LauncherSection(title: title, items: sectionItems)
         }
     }
 
@@ -316,7 +385,7 @@ final class LauncherViewModel: ObservableObject {
             break
         }
 
-        let categoryItems = filterByCategory(items)
+        let categoryItems = index.filter { includesInCategory($0.item) }.map(\.item.item)
         let ids = categoryItems.map(\.id)
         let recentIDs = UsageTracker.shared.sortedByRecent(ids)
         let idOrder = Dictionary(uniqueKeysWithValues: recentIDs.enumerated().map { ($1, $0) })
@@ -410,14 +479,6 @@ final class LauncherViewModel: ObservableObject {
         query = ""
         showsActions = false
         focusToken = UUID()
-    }
-
-    var sections: [LauncherSection] {
-        let filtered = self.filtered
-        return ["Browse", "Window Commands", "Actions", "Shortcuts", "Applications", "Clipboard", "Snippets", "Trast"].compactMap { title in
-            let sectionItems = filtered.filter { $0.section == title }
-            return sectionItems.isEmpty ? nil : LauncherSection(title: title, items: sectionItems)
-        }
     }
 
     func moveSelection(_ delta: Int) {
