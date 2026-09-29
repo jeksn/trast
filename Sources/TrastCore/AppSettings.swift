@@ -18,6 +18,7 @@ public enum AppSettings {
     public static let launcherOpacityKey = "launcherOpacity"
     public static let launcherClipboardTabKey = "launcherClipboardTab"
     public static let launcherSnippetsTabKey = "launcherSnippetsTab"
+    public static let scratchpadTextKey = "scratchpadText"
 
     public static var gap: Double {
         UserDefaults.standard.double(forKey: gapKey)

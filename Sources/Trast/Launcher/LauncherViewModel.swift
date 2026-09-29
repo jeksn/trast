@@ -185,6 +185,7 @@ final class LauncherViewModel: ObservableObject {
         case applications
         case clipboard
         case snippets
+        case scratchpad
         case trast
 
         var label: String {
@@ -195,6 +196,7 @@ final class LauncherViewModel: ObservableObject {
             case .applications: return "Apps"
             case .clipboard: return "Clipboard"
             case .snippets: return "Snippets"
+            case .scratchpad: return "Scratchpad"
             case .trast: return "Trast"
             }
         }
@@ -207,6 +209,7 @@ final class LauncherViewModel: ObservableObject {
             case .applications: return "app"
             case .clipboard: return "clipboard"
             case .snippets: return "text.append"
+            case .scratchpad: return "square.and.pencil"
             case .trast: return "gearshape"
             }
         }
@@ -215,6 +218,7 @@ final class LauncherViewModel: ObservableObject {
             var cases: [Category] = [.all, .commands, .shortcuts, .applications]
             if AppSettings.launcherClipboardTab { cases.append(.clipboard) }
             if AppSettings.launcherSnippetsTab { cases.append(.snippets) }
+            cases.append(.scratchpad)
             cases.append(.trast)
             return cases
         }
@@ -292,6 +296,8 @@ final class LauncherViewModel: ObservableObject {
             return items.filter { $0.section == "Clipboard" }
         case .snippets:
             return items.filter { $0.section == "Snippets" }
+        case .scratchpad:
+            return []
         case .trast:
             return items.filter { $0.section == "Trast" }.filter {
                 if case .launcherAction(.clipboardHistory) = $0 { return false }

@@ -1,18 +1,27 @@
 import TrastCore
 import SwiftUI
 import KeyboardShortcuts
+import AppKit
 
 struct LauncherView: View {
     @ObservedObject var viewModel: LauncherViewModel
     let onSelect: (LauncherItem) -> Void
     @AppStorage(AppSettings.launcherOpacityKey) private var opacity: Double = 0.85
+    @AppStorage(AppSettings.scratchpadTextKey) private var scratchpadText = ""
 
     @FocusState private var isFocused: Bool
+    @FocusState private var editorFocused: Bool
+
+    @State private var showsCopied = false
+    @State private var confirmClear = false
 
     var body: some View {
         VStack(spacing: 0) {
             if viewModel.showsActions {
-                actionsGrid
+                actionsList
+                    .transition(.blurFade)
+            } else if viewModel.selectedCategory == .scratchpad {
+                scratchpad
                     .transition(.blurFade)
             } else {
                 searchField
@@ -63,17 +72,25 @@ struct LauncherView: View {
         )
         .ignoresSafeArea(edges: .all)
         .onAppear {
-            DispatchQueue.main.async { isFocused = true }
+            DispatchQueue.main.async { focusActiveField() }
         }
         .onChange(of: viewModel.focusToken) { _ in
-            DispatchQueue.main.async { isFocused = true }
+            DispatchQueue.main.async { focusActiveField() }
         }
         .onChange(of: viewModel.showsActions) { showsActions in
             if !showsActions {
-                DispatchQueue.main.async { isFocused = true }
+                DispatchQueue.main.async { focusActiveField() }
             }
         }
         .onExitCommand { LauncherController.shared.handleEscape() }
+    }
+
+    private func focusActiveField() {
+        if viewModel.selectedCategory == .scratchpad && !viewModel.showsActions {
+            editorFocused = true
+        } else {
+            isFocused = true
+        }
     }
 
     private var searchField: some View {
@@ -84,15 +101,26 @@ struct LauncherView: View {
                 .textFieldStyle(.plain)
                 .font(.system(size: 20))
                 .focused($isFocused)
+            Button {
+                viewModel.enterActionsMode()
+            } label: {
+                Text("⇥")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 28, height: 22)
+                    .background(Capsule().fill(Color.secondary.opacity(0.15)))
+            }
+            .buttonStyle(.plain)
+            .help("Show all categories (Tab)")
         }
         .padding(.horizontal, 16)
         .padding(.top, 14)
         .padding(.bottom, 12)
     }
 
-    private var actionsGrid: some View {
+    private var actionsList: some View {
         let categories = LauncherViewModel.Category.gridCases
-        return LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
+        return VStack(spacing: 10) {
             ForEach(Array(categories.enumerated()), id: \.element) { index, category in
                 LauncherCategoryTile(
                     category: category,
@@ -103,6 +131,99 @@ struct LauncherView: View {
             }
         }
         .padding(14)
+    }
+
+    private var scratchpad: some View {
+        VStack(spacing: 0) {
+            ZStack(alignment: .topLeading) {
+                TextEditor(text: $scratchpadText)
+                    .font(.system(size: 14))
+                    .scrollContentBackground(.hidden)
+                    .focused($editorFocused)
+                    .frame(height: 300)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                if scratchpadText.isEmpty {
+                    Text("Jot something down…")
+                        .font(.system(size: 14))
+                        .foregroundStyle(.tertiary)
+                        .padding(.leading, 21)
+                        .padding(.top, 12)
+                        .allowsHitTesting(false)
+                }
+            }
+            .padding(.top, 4)
+
+            Divider()
+
+            HStack(spacing: 16) {
+                Spacer()
+
+                if confirmClear {
+                    Text("Clear scratchpad?")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                    Button {
+                        scratchpadText = ""
+                        confirmClear = false
+                    } label: {
+                        Image(systemName: "checkmark.circle")
+                            .foregroundStyle(Color.red)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Clear the scratchpad")
+                    Button {
+                        confirmClear = false
+                    } label: {
+                        Image(systemName: "xmark.circle")
+                            .foregroundStyle(Color.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Keep the text")
+                } else {
+                    Button {
+                        let pasteboard = NSPasteboard.general
+                        pasteboard.clearContents()
+                        pasteboard.setString(scratchpadText, forType: .string)
+                        showsCopied = true
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                            showsCopied = false
+                        }
+                    } label: {
+                        Image(systemName: showsCopied ? "checkmark" : "doc.on.doc")
+                            .foregroundStyle(Color.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(scratchpadText.isEmpty)
+                    .help(showsCopied ? "Copied" : "Copy to clipboard")
+                    .opacity(scratchpadText.isEmpty ? 0.4 : 1)
+
+                    Button {
+                        confirmClear = true
+                    } label: {
+                        Image(systemName: "arrow.circlepath")
+                            .foregroundStyle(Color.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(scratchpadText.isEmpty)
+                    .help("Clear and start over")
+                    .opacity(scratchpadText.isEmpty ? 0.4 : 1)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+        }
+        .onChange(of: viewModel.selectedCategory) { category in
+            if category != .scratchpad {
+                confirmClear = false
+            }
+        }
+        .onChange(of: viewModel.showsActions) { showsActions in
+            if showsActions {
+                confirmClear = false
+            }
+        }
     }
 
     private var shouldShowSectionHeader: Bool {

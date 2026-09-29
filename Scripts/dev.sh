@@ -10,5 +10,9 @@ if pgrep -x Trast > /dev/null 2>&1; then
     sleep 0.3
 fi
 
-open "$ROOT/Trast.app"
+# Launch the executable directly instead of `open`: `open` registers the repo
+# bundle in LaunchServices, and a second com.trast.app registration (dev copy
+# + /Applications) makes Spotlight hide the app from search results.
+nohup "$ROOT/Trast.app/Contents/MacOS/Trast" >/dev/null 2>&1 &
+disown
 echo "Trast launched"

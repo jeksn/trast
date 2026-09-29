@@ -55,12 +55,20 @@ enum WindowManipulator {
         return makeRef(pid: pid, app: app, window: window as! AXUIElement)
     }
 
+    /// CGWindowID backing an AX window element, or nil when the private
+    /// accessor is unavailable. This is the only reliable window identity
+    /// across separate AX queries — CFEqual on freshly fetched element refs
+    /// is not guaranteed to match, and app-provided window lists reorder
+    /// (some follow z-order), so index-based comparisons break.
+    static func cgWindowID(of window: AXUIElement) -> CGWindowID? {
+        guard let getWindowID else { return nil }
+        var id = CGWindowID(0)
+        guard getWindowID(window, &id) == .success else { return nil }
+        return id
+    }
+
     private static func makeRef(pid: pid_t, app: AXUIElement, window: AXUIElement) -> WindowRef {
-        var windowID: CGWindowID?
-        if let getWindowID {
-            var id = CGWindowID(0)
-            if getWindowID(window, &id) == .success { windowID = id }
-        }
+        let windowID = cgWindowID(of: window)
 
         var title: String?
         var titleValue: CFTypeRef?

@@ -30,6 +30,8 @@ struct SettingsView: View {
                 SnippetListView()
             case .clipboard:
                 ClipboardSettingsView()
+            case .scratchpad:
+                ScratchpadSettingsView()
             }
         }
     }
@@ -42,6 +44,7 @@ enum SettingsSection: String, CaseIterable, Identifiable, Hashable {
     case shortcuts
     case snippets
     case clipboard
+    case scratchpad
 
     var id: String { rawValue }
 
@@ -53,6 +56,7 @@ enum SettingsSection: String, CaseIterable, Identifiable, Hashable {
         case .shortcuts: return "Shortcuts"
         case .snippets: return "Snippets"
         case .clipboard: return "Clipboard"
+        case .scratchpad: return "Scratchpad"
         }
     }
 
@@ -64,6 +68,7 @@ enum SettingsSection: String, CaseIterable, Identifiable, Hashable {
         case .shortcuts: return "arrow.right.square"
         case .snippets: return "text.append"
         case .clipboard: return "clipboard"
+        case .scratchpad: return "square.and.pencil"
         }
     }
 }

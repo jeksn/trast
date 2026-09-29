@@ -9,6 +9,7 @@ final class HotkeyManager {
     static let openLauncher = KeyboardShortcuts.Name("openLauncher")
     static let nextWindow = KeyboardShortcuts.Name("nextWindow")
     static let openClipboard = KeyboardShortcuts.Name("openClipboard")
+    static let openScratchpad = KeyboardShortcuts.Name("openScratchpad")
 
     private var registeredCommandIDs = Set<UUID>()
     private var registeredAppShortcutIDs = Set<UUID>()
@@ -32,6 +33,9 @@ final class HotkeyManager {
         }
         KeyboardShortcuts.onKeyUp(for: Self.openClipboard) {
             LauncherController.shared.showClipboard()
+        }
+        KeyboardShortcuts.onKeyUp(for: Self.openScratchpad) {
+            LauncherController.shared.showScratchpad()
         }
         for action in WindowAction.all {
             register(action)

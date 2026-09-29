@@ -20,17 +20,18 @@ Resize and move the focused window into any layout you define — halves, thirds
 ### Launcher
 
 - **Spotlight-style launcher** — press a global hotkey to open a search bar; results appear below as you type. Search across window commands, actions, shortcuts, installed apps, clipboard history, snippets, and the category views themselves (type "snippets" or "commands" to jump straight into that view)
-- **Actions view** — press Tab to fade the search bar into a 2-column grid of categories (Window Commands, Shortcuts, Apps, Clipboard, Snippets, Trast) with ⌘-number badges. Tab scrolls through the options: each press advances to the next tile, and past the last one it wraps back to search (Shift+Tab cycles backward, and from inside a category Tab continues from the neighbouring tile). Arrows also navigate, Return enters a category, and Cmd+1..6 jumps to a category from anywhere; typing is ignored while the grid is shown. Esc from a category returns to the actions grid on that category's tile; Esc from the grid or search closes. Mode switches animate with a blur-and-fade transition
+- **Actions view** — press Tab (or click the ⇥ button at the right of the search bar) to fade the search bar into a stacked list of categories (Window Commands, Shortcuts, Apps, Clipboard, Snippets, Scratchpad, Trast) with ⌘-number badges. Tab steps through the list: each press advances to the next tile, and past the last one it wraps back to search (Shift+Tab cycles backward, and from inside a category Tab continues from the neighbouring tile). ↑↓ also move the selection, Return enters a category, and Cmd+1..7 jumps to a category from anywhere; typing is ignored while the list is shown. Esc from a category returns to the actions list on that category's tile; Esc from the list or search closes. Mode switches animate with a blur-and-fade transition
 - **Recent activity** — entering a category without typing shows recently used items from that category, so the launcher feels alive instead of empty; the search bar is focused so you can start filtering immediately. Searching inside a category only searches that category's items; the main search fuzzy-searches everything
 - **App launching** — search and launch any installed app with real app icons; apps with shortcuts show their hotkey
 - **Clipboard history in launcher** — the Clipboard tab shows the full clipboard history (up to the configured limit) directly in the launcher; search matches the full content of each item, not just the first line; select to paste into the frontmost app. The dedicated clipboard hotkey (Settings → Window) opens the Launcher on the Clipboard tab — the launcher is the only clipboard interface
 - **Snippets in launcher** — the Snippets tab shows all enabled snippets; select to copy the expanded text to the clipboard
+- **Scratchpad** — a quick-notes text pad in the launcher; type and the text persists across opens and relaunches, with Copy (to clipboard) and Clear buttons. Esc/Tab/Cmd+number navigation behaves like the other categories, but the editor receives Return, arrows, and all typing. A dedicated hotkey (Settings → Scratchpad) opens the Launcher straight on the Scratchpad tab
 - **Launcher transparency** — adjust the panel opacity from the General settings (slider with 5% steps)
 - **Cmd+,** — open Settings directly from the Launcher
 
 ### Snippets
 
-- **Text expansion** — type a keyword anywhere on the system and it expands into predefined text. Requires Input Monitoring permission (prompted on first enable in Settings → General)
+- **Text expansion** — type a keyword anywhere on the system and it expands into predefined text, instantly: the keyword is selected and the expansion pasted over it in one shot (your clipboard is borrowed for a moment and restored right after; it never lands in the clipboard history). Requires Input Monitoring permission (prompted on first enable in Settings → General)
 - **Template variables** — insert dynamic content into your snippets using `{{variable}}` syntax:
 
 | Variable | Result | Example |
@@ -101,9 +102,10 @@ Re-grant Accessibility one last time — after that, rebuilds keep the permissio
 ## Usage
 
 - **Menu bar icon** — lists the commands and shortcuts you've pinned (toggle per item in Settings), plus Launcher, Settings, and Check for Updates
-- **Launcher** — press the global hotkey (configurable in Settings → General); type to search everything, or Tab to cycle through the actions grid and back to search; ↑↓ to navigate results, ←→↑↓ in the grid, Return to select, Esc steps back (category → actions grid → close), Cmd+, to open Settings, Cmd+1..6 to jump to a category
-- **Clipboard History** — press the clipboard hotkey (configurable in Settings → Window) to open the Launcher on the Clipboard tab, or get there via the actions grid / search; type to filter the full history and select to paste into the frontmost app
-- **Settings** — sidebar navigation: General, Window, Commands, Shortcuts, Snippets, Clipboard
+- **Launcher** — press the global hotkey (configurable in Settings → General); type to search everything, or Tab to cycle through the actions list and back to search; ↑↓ to navigate results or the actions list, Return to select, Esc steps back (category → actions list → close), Cmd+, to open Settings, Cmd+1..7 to jump to a category
+- **Clipboard History** — press the clipboard hotkey (configurable in Settings → Window) to open the Launcher on the Clipboard tab, or get there via the actions list / search; type to filter the full history and select to paste into the frontmost app
+- **Scratchpad** — press the scratchpad hotkey (configurable in Settings → Scratchpad) to open the Launcher on the Scratchpad tab; press again to close
+- **Settings** — sidebar navigation: General, Window, Commands, Shortcuts, Snippets, Clipboard, Scratchpad
 - **Hyper key** — enable in Settings → General, then hold Caps Lock while recording a command or shortcut hotkey; it registers as ⌃⌥⇧⌘+key and displays as `✦K`
 
 ### Settings
@@ -116,6 +118,7 @@ Re-grant Accessibility one last time — after that, rebuilds keep the permissio
 | **Shortcuts** | Add shortcuts of three kinds (App, URL/Link, Folder/File), each with its own global hotkey; grouped by type |
 | **Snippets** | Create text snippets with keywords and template variables; toggle individual snippets on/off; grouped by enabled/disabled |
 | **Clipboard** | Monitor toggle, history size, auto-clear interval, clear history |
+| **Scratchpad** | Scratchpad hotkey, clear scratchpad |
 
 ### URL scheme
 

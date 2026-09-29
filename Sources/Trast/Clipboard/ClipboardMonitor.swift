@@ -7,9 +7,35 @@ final class ClipboardMonitor {
 
     private var timer: DispatchSourceTimer?
     private var lastChangeCount: Int
+    private let stateLock = NSLock()
+    private var captureSuspended = false
 
     private init() {
         lastChangeCount = NSPasteboard.general.changeCount
+    }
+
+    /// Pauses history capture while another component (snippet expansion)
+    /// temporarily takes over the pasteboard.
+    func suspendCapture() {
+        stateLock.lock()
+        captureSuspended = true
+        stateLock.unlock()
+    }
+
+    /// Resumes capture and swallows the changeCount delta produced during the
+    /// suspension so neither the override nor the restored content is
+    /// re-captured into the history.
+    func resumeCapture() {
+        stateLock.lock()
+        captureSuspended = false
+        lastChangeCount = NSPasteboard.general.changeCount
+        stateLock.unlock()
+    }
+
+    private var isCaptureSuspended: Bool {
+        stateLock.lock()
+        defer { stateLock.unlock() }
+        return captureSuspended
     }
 
     func start() {
@@ -31,10 +57,14 @@ final class ClipboardMonitor {
     }
 
     private func poll() {
+        guard !isCaptureSuspended else { return }
         let pasteboard = NSPasteboard.general
         let currentCount = pasteboard.changeCount
-        guard currentCount != lastChangeCount else { return }
-        lastChangeCount = currentCount
+        stateLock.lock()
+        let changed = currentCount != lastChangeCount
+        if changed { lastChangeCount = currentCount }
+        stateLock.unlock()
+        guard changed else { return }
 
         if let item = readItem(from: pasteboard) {
             DispatchQueue.main.async {

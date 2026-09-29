@@ -9,19 +9,26 @@ final class SnippetExpander {
     /// Marks events we inject so the tap ignores its own output instead of
     /// feeding expansion text back into the keystroke buffer.
     private static let syntheticTag: Int64 = 0x5770_536E_6970
-    /// Pause before deleting the keyword: lets the final physical keystroke
+    /// Pause before selecting the keyword: lets the final physical keystroke
     /// finish so synthetic events never race real ones still in flight.
     private static let settleInterval: TimeInterval = 0.03
     /// Gap between a synthetic keyDown and its keyUp: zero-length presses get
     /// filtered as noise by some apps.
     private static let keyPressInterval: TimeInterval = 0.006
-    /// Pacing between injected keystrokes: events arriving faster than a
-    /// display frame (~16ms) get coalesced by apps and characters are dropped
-    /// (seen as mangled expansions and keyword residue).
-    private static let keystrokeInterval: TimeInterval = 0.012
-    /// Pause between the backspace phase and the injection phase so the app
-    /// has processed the deletions before insertions begin.
-    private static let phaseInterval: TimeInterval = 0.03
+    /// Pacing between selection keystrokes. Unlike text-generating events
+    /// (which coalesce and drop characters below ~12ms), plain arrow-key
+    /// events are safe to post almost back-to-back; the gap only needs to
+    /// keep the presses distinct. This matters for feel: the selection is
+    /// built one Shift+Left per keyword character, and at ~12ms apiece the
+    /// highlight visibly swept right-to-left before the paste for longer
+    /// keywords ("!today" crawled for ~110ms).
+    private static let selectionInterval: TimeInterval = 0.002
+    /// Pause between the selection phase and the paste so the app has
+    /// processed the selection before the paste replaces it.
+    private static let phaseInterval: TimeInterval = 0.015
+    /// How long the expansion stays on the pasteboard before the user's
+    /// clipboard content is restored.
+    private static let clipboardRestoreInterval: TimeInterval = 0.25
 
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
@@ -209,47 +216,86 @@ final class SnippetExpander {
         return nil
     }
 
+    /// Expands in two phases: select the typed keyword, then paste the
+    /// expansion over the selection in one shot.
+    ///
+    /// Selection (Shift+Left) instead of backspaces, and paste (Cmd+V)
+    /// instead of typing the text char-by-char:
+    /// - Address bars (Chrome/Safari omnibox) inline-autocomplete what you
+    ///   type; the gray suggestion is a live selection, so the first backspace
+    ///   eats the suggestion instead of a typed character and the keyword
+    ///   leaves residue ("!in" -> "!https://…"). The selection covers the
+    ///   autocomplete too and the paste replaces the whole thing.
+    /// - Typing synthetically must be paced ~12ms/char (below that, events
+    ///   coalesce and characters drop), so long expansions streamed visibly
+    ///   for hundreds of milliseconds. A paste lands in a single frame.
     private func expand(keyword: String, into expansion: String) {
         let clipboard = NSPasteboard.general.string(forType: .string) ?? ""
         let resolved = SnippetTemplate.resolve(expansion, clipboardContent: clipboard)
 
+        // The expansion takes over the pasteboard for a moment; keep the
+        // transient text out of the clipboard history.
+        ClipboardMonitor.shared.suspendCapture()
+
         injectQueue.asyncAfter(deadline: .now() + Self.settleInterval) { [weak self] in
-            guard let self else { return }
+            guard let self else {
+                ClipboardMonitor.shared.resumeCapture()
+                return
+            }
 
             for _ in 0..<keyword.count {
-                self.sendBackspace()
-                Thread.sleep(forTimeInterval: Self.keystrokeInterval)
+                self.sendKey(keyCode: 123, flags: .maskShift)
+                Thread.sleep(forTimeInterval: Self.selectionInterval)
             }
 
             Thread.sleep(forTimeInterval: Self.phaseInterval)
 
-            for scalar in resolved.unicodeScalars {
-                self.injectCharacter(scalar)
-                Thread.sleep(forTimeInterval: Self.keystrokeInterval)
+            let saved = Self.savedPasteboardContent()
+            let pasteboard = NSPasteboard.general
+            pasteboard.clearContents()
+            pasteboard.setString(resolved, forType: .string)
+            self.sendKey(keyCode: 9, flags: .maskCommand)
+
+            // Restore the previous clipboard once the paste has landed;
+            // resumeCapture syncs the monitor's changeCount so neither the
+            // expansion nor the restore is re-captured into the history.
+            self.injectQueue.asyncAfter(deadline: .now() + Self.clipboardRestoreInterval) {
+                Self.restorePasteboardContent(saved)
+                ClipboardMonitor.shared.resumeCapture()
             }
         }
     }
 
-    private func sendBackspace() {
-        let keyDown = CGEvent(keyboardEventSource: injectSource, virtualKey: 51, keyDown: true)
-        keyDown?.setIntegerValueField(.eventSourceUserData, value: Self.syntheticTag)
-        keyDown?.post(tap: .cghidEventTap)
-        Thread.sleep(forTimeInterval: Self.keyPressInterval)
-
-        let keyUp = CGEvent(keyboardEventSource: injectSource, virtualKey: 51, keyDown: false)
-        keyUp?.setIntegerValueField(.eventSourceUserData, value: Self.syntheticTag)
-        keyUp?.post(tap: .cghidEventTap)
+    /// Saves every type currently on the general pasteboard so the override
+    /// can be undone without losing non-text content (images, file URLs).
+    private static func savedPasteboardContent() -> [(NSPasteboard.PasteboardType, Data)] {
+        let pasteboard = NSPasteboard.general
+        return (pasteboard.types ?? []).compactMap { type in
+            guard let data = pasteboard.data(forType: type) else { return nil }
+            return (type, data)
+        }
     }
 
-    private func injectCharacter(_ scalar: Unicode.Scalar) {
-        let keyDown = CGEvent(keyboardEventSource: injectSource, virtualKey: 0, keyDown: true)
-        let chars = [UniChar](scalar.utf16)
-        keyDown?.keyboardSetUnicodeString(stringLength: chars.count, unicodeString: chars)
+    private static func restorePasteboardContent(_ content: [(NSPasteboard.PasteboardType, Data)]) {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        guard !content.isEmpty else { return }
+        let item = NSPasteboardItem()
+        for (type, data) in content {
+            item.setData(data, forType: type)
+        }
+        pasteboard.writeObjects([item])
+    }
+
+    private func sendKey(keyCode: UInt16, flags: CGEventFlags) {
+        let keyDown = CGEvent(keyboardEventSource: injectSource, virtualKey: keyCode, keyDown: true)
+        keyDown?.flags = flags
         keyDown?.setIntegerValueField(.eventSourceUserData, value: Self.syntheticTag)
         keyDown?.post(tap: .cghidEventTap)
         Thread.sleep(forTimeInterval: Self.keyPressInterval)
 
-        let keyUp = CGEvent(keyboardEventSource: injectSource, virtualKey: 0, keyDown: false)
+        let keyUp = CGEvent(keyboardEventSource: injectSource, virtualKey: keyCode, keyDown: false)
+        keyUp?.flags = flags
         keyUp?.setIntegerValueField(.eventSourceUserData, value: Self.syntheticTag)
         keyUp?.post(tap: .cghidEventTap)
     }

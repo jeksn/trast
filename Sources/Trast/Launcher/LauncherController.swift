@@ -16,6 +16,7 @@ final class LauncherController: NSObject, NSWindowDelegate {
     private var target: WindowRef?
     private var keyMonitor: Any?
     private var resizeCancellable: AnyCancellable?
+    private var lastTargetFrame: NSRect?
 
     func toggle() {
         if panel?.isVisible == true {
@@ -42,6 +43,17 @@ final class LauncherController: NSObject, NSWindowDelegate {
             show()
             DispatchQueue.main.async { [weak self] in
                 self?.viewModel.selectCategory(.clipboard)
+            }
+        }
+    }
+
+    func showScratchpad() {
+        if panel?.isVisible == true, viewModel.selectedCategory == .scratchpad, !viewModel.showsActions {
+            close()
+        } else {
+            show()
+            DispatchQueue.main.async { [weak self] in
+                self?.viewModel.selectCategory(.scratchpad)
             }
         }
     }
@@ -203,28 +215,48 @@ final class LauncherController: NSObject, NSWindowDelegate {
 
     private func resizePanelToFit() {
         guard let panel, let hostingView = panel.contentView as? NSHostingView<LauncherView> else { return }
-        CATransaction.begin()
-        CATransaction.setDisableActions(true)
         let fittingSize = hostingView.fittingSize
         var height = min(fittingSize.height, 440)
         height = max(height, 52)
-        panel.setContentSize(CGSize(width: 640, height: height))
-        reposition(panel)
-        CATransaction.commit()
+        guard let target = targetFrame(height: height) else { return }
+        // Skip when the destination is unchanged: objectWillChange fires on
+        // every keystroke and selection move, and restarting the easeInOut
+        // resize from a mid-flight frame makes the panel visibly stutter.
+        guard target != lastTargetFrame else { return }
+        lastTargetFrame = target
+
+        // Animate only large jumps (mode switches) in sync with
+        // LauncherViewModel.modeAnimation: an instant setContentSize of that
+        // size lets the window's material layer draw square corners for a
+        // frame before SwiftUI re-applies the corner mask. Small deltas
+        // (search results growing/shrinking) snap, which reads as smooth
+        // incremental tracking and avoids animation pile-up while typing.
+        if panel.isVisible, abs(target.height - panel.frame.height) > 60 {
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.18
+                context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                panel.animator().setFrame(target, display: true)
+            }
+        } else {
+            panel.setFrame(target, display: true)
+        }
     }
 
-    private func reposition(_ panel: NSPanel) {
+    private func targetFrame(height: CGFloat) -> NSRect? {
+        guard let panel else { return nil }
         let mouse = NSEvent.mouseLocation
         let screen = NSScreen.screens.first { $0.frame.contains(mouse) } ?? NSScreen.main
-        guard let screen else { return }
+        guard let screen else { return nil }
         let visible = screen.visibleFrame
-        let x = visible.midX - panel.frame.width / 2
-        let y = visible.maxY - visible.height * 0.32 - panel.frame.height
-        // Pixel-align the origin to avoid sub-pixel jitter on non-HiDPI displays.
         let scale = screen.backingScaleFactor
+        // Pixel-align size and origin to avoid sub-pixel jitter on non-HiDPI displays.
+        let alignedWidth = (panel.frame.width * scale).rounded() / scale
+        let alignedHeight = (height * scale).rounded() / scale
+        let x = visible.midX - alignedWidth / 2
+        let y = visible.maxY - visible.height * 0.32 - alignedHeight
         let alignedX = (x * scale).rounded() / scale
         let alignedY = (y * scale).rounded() / scale
-        panel.setFrameOrigin(NSPoint(x: alignedX, y: alignedY))
+        return NSRect(x: alignedX, y: alignedY, width: alignedWidth, height: alignedHeight)
     }
 
     private func installKeyMonitor() {
@@ -246,6 +278,21 @@ final class LauncherController: NSObject, NSWindowDelegate {
                 }
             }
 
+            // Scratchpad mode: the editor needs Return, arrows, and all text
+            // keys; only Esc and Tab are launcher navigation.
+            if self.viewModel.selectedCategory == .scratchpad && !self.viewModel.showsActions {
+                switch event.keyCode {
+                case 53:
+                    self.handleEscape()
+                    return nil
+                case 48:
+                    self.viewModel.handleTab(shift: event.modifierFlags.contains(.shift))
+                    return nil
+                default:
+                    return event
+                }
+            }
+
             switch event.keyCode {
             case 48:
                 self.viewModel.handleTab(shift: event.modifierFlags.contains(.shift))
@@ -253,10 +300,9 @@ final class LauncherController: NSObject, NSWindowDelegate {
             case 123, 124, 125, 126:
                 if self.viewModel.showsActions {
                     switch event.keyCode {
-                    case 123: self.viewModel.moveGridSelection(-1)
-                    case 124: self.viewModel.moveGridSelection(1)
-                    case 125: self.viewModel.moveGridSelection(2)
-                    default: self.viewModel.moveGridSelection(-2)
+                    case 125: self.viewModel.moveGridSelection(1)
+                    case 126: self.viewModel.moveGridSelection(-1)
+                    default: break
                     }
                     return nil
                 }
