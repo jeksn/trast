@@ -1,35 +1,43 @@
 # Trast
 
-Window management and a Spotlight-like launcher for macOS.
+A Spotlight replacement for macOS.
 
-Resize and move the focused window into any layout you define — halves, thirds, sixths, or custom percentages with offsets — and trigger your presets with global hotkeys, the Launcher, or a URL. The Launcher also searches and launches installed apps, manages clipboard history, and expands text snippets. A native hyper key turns Caps Lock into ⌃⌥⇧⌘ for conflict-free hotkeys.
+Press one hotkey and type. Trast searches everything at once — installed apps, window commands, clipboard history, snippets, and quick calculations — and acts on the top result. It's a native menu-bar app that works out of the box: a full set of window-management commands ships ready to use, clipboard history is on from the first launch, and every hotkey is optional but configurable.
 
-## Features
+## Why it over Spotlight
 
-### Window management
+- **One search bar, everything in it** — apps, window commands, your clipboard history, snippets, shortcuts, and math. No separate tools to learn
+- **Sane defaults** — 27 ready-made window commands (halves, thirds, quarters, sixths, Maximize, and more), clipboard history with pinned items, and a calculator that just answers; nothing to configure before it's useful
+- **Window management built in** — the same launcher runs your window layouts, with global hotkeys, a menu bar menu, and a `trast://` URL scheme for scripts
+- **System-wide text snippets** — type a keyword anywhere and it expands; the launcher also searches and copies them
+- **A hyper key** — Caps Lock becomes ⌃⌥⇧⌘, a modifier no other app uses, so hotkeys never conflict
+- **Native and lightweight** — SwiftUI menu-bar app, no Dock icon, no account, free
+
+## The launcher
+
+Press the launcher hotkey (Settings → General to record it) and type. Results appear below the bar as you type, grouped by section; Return picks the top result, ↑↓ walk the list, Esc closes.
+
+- **App launching** — search and launch any installed app with real app icons; apps you've bound to a shortcut show their hotkey
+- **Calculator** — type math (`2^10*2`), unit conversions (`5 km to miles`, `72 f`), or currency (`10 usd to eur`) and the result appears above all other results; Return copies it. Bare amounts (`25 eur`) convert to your base currency, bare units (`5 km`) follow your preferred system (Settings → General → Calculator). Currency uses ECB daily reference rates, fetched at most once a day, cached on disk, and usable offline
+- **Clipboard history** — every copy is captured (up to the configured limit, 100 by default); search matches the full content of each item, not just the first line, and selecting pastes straight into the frontmost app. A dedicated hotkey (Settings → Window) opens the launcher on the Clipboard tab
+- **Snippets** — the Snippets tab lists your snippets; select to copy the resolved text (with template variables filled in)
+- **Scratchpad** — a quick-notes pad that persists across opens and relaunches, with Copy and Clear buttons. A dedicated hotkey (Settings → Scratchpad) opens the launcher straight on it
+- **Actions view** — Tab fades the search bar into a stacked list of categories (Window Commands, Shortcuts, Apps, Clipboard, Snippets, Scratchpad, Trast) with ⌘-number badges. Tab steps through the list and wraps back to search (Shift+Tab cycles backward), ↑↓ move the selection, Return enters a category, and Cmd+1..7 jumps from anywhere
+- **Recent activity** — entering a category without typing shows recently used items from that category; searching inside a category scopes the search to it, the main search fuzzy-searches everything
+- **Cmd+,** opens Settings from anywhere in the launcher
+
+## Window management
 
 - **Custom window commands** — size in % of the display or absolute points, a two-axis anchor (pin left/center/right and top/center/bottom independently, or keep either axis to build move-style commands), and X/Y offsets with negative values
-- **27 built-in commands** — halves, corner quarters, column fourths, thirds, sixths, Maximize / Maximize Height / Maximize Width, Center, Reasonable Size, and Move Left/Right/Up/Down — all editable, hideable, deletable, and restorable
+- **27 built-in commands** — halves, corner quarters, column fourths, thirds, sixths, Maximize / Maximize Height / Maximize Width, Reasonable Size — all editable, hideable, deletable, and restorable
 - **Global hotkeys** per command, recorded in-app
+- **Action hotkeys** — Center, Move Left/Right/Up/Down, Next Display (move the focused window to the next display, preserving its relative position and size)
 - **Next Window hotkey** — cycle through the front app's windows via Accessibility, independent of the system "Move focus to next window" shortcut
-- **Next Display** — move the focused window to the next display, preserving its relative position and size
-- **Menu bar pinning** — choose exactly which commands appear in the menu bar
 - **Restore** — undo the last window change, per window
+- **Menu bar pinning** — choose exactly which commands and shortcuts appear in the menu bar
 - **Edge gap** — keep windows off the screen edges with presets (Small, Medium, Large, Extra Large)
 
-### Launcher
-
-- **Spotlight-style launcher** — press a global hotkey to open a search bar; results appear below as you type. Search across window commands, actions, shortcuts, installed apps, clipboard history, snippets, and the category views themselves (type "snippets" or "commands" to jump straight into that view)
-- **Actions view** — press Tab (or click the ⇥ button at the right of the search bar) to fade the search bar into a stacked list of categories (Window Commands, Shortcuts, Apps, Clipboard, Snippets, Scratchpad, Trast) with ⌘-number badges. Tab steps through the list: each press advances to the next tile, and past the last one it wraps back to search (Shift+Tab cycles backward, and from inside a category Tab continues from the neighbouring tile). ↑↓ also move the selection, Return enters a category, and Cmd+1..7 jumps to a category from anywhere; typing is ignored while the list is shown. Esc from a category returns to the actions list on that category's tile; Esc from the list or search closes. Mode switches animate with a blur-and-fade transition
-- **Recent activity** — entering a category without typing shows recently used items from that category, so the launcher feels alive instead of empty; the search bar is focused so you can start filtering immediately. Searching inside a category only searches that category's items; the main search fuzzy-searches everything
-- **App launching** — search and launch any installed app with real app icons; apps with shortcuts show their hotkey
-- **Clipboard history in launcher** — the Clipboard tab shows the full clipboard history (up to the configured limit) directly in the launcher; search matches the full content of each item, not just the first line; select to paste into the frontmost app. The dedicated clipboard hotkey (Settings → Window) opens the Launcher on the Clipboard tab — the launcher is the only clipboard interface
-- **Snippets in launcher** — the Snippets tab shows all enabled snippets; select to copy the expanded text to the clipboard
-- **Scratchpad** — a quick-notes text pad in the launcher; type and the text persists across opens and relaunches, with Copy (to clipboard) and Clear buttons. Esc/Tab/Cmd+number navigation behaves like the other categories, but the editor receives Return, arrows, and all typing. A dedicated hotkey (Settings → Scratchpad) opens the Launcher straight on the Scratchpad tab
-- **Launcher transparency** — adjust the panel opacity from the General settings (slider with 5% steps)
-- **Cmd+,** — open Settings directly from the Launcher
-
-### Snippets
+## Snippets
 
 - **Text expansion** — type a keyword anywhere on the system and it expands into predefined text, instantly: the keyword is selected and the expansion pasted over it in one shot (your clipboard is borrowed for a moment and restored right after; it never lands in the clipboard history). Requires Input Monitoring permission (prompted on first enable in Settings → General)
 - **Template variables** — insert dynamic content into your snippets using `{{variable}}` syntax:
@@ -46,24 +54,23 @@ Resize and move the focused window into any layout you define — halves, thirds
 
   Date formats use standard ICU/DateFormatter patterns. Unknown variables (e.g. `{{unknown}}`) pass through as-is.
 
-- **Snippet management** — create, edit, enable/disable, and delete snippets in Settings → Snippets. Each snippet has a name, a keyword (what you type to trigger it), and the content (with optional template variables)
-- **Launcher integration** — snippets appear in the Snippets tab and in All search results; selecting from the launcher copies the resolved text to the clipboard
+- **Snippet management** — create, edit, enable/disable, and delete snippets in Settings → Snippets
 
-### Hyper key
+## Hyper key
 
-- **Caps Lock → ⌃⌥⇧⌘** — hold Caps Lock as a "hyper" modifier, a combo no other app uses, and bind conflict-free hotkeys to your window commands and shortcuts. A lone Caps Lock tap does nothing (Settings → General → Hyper Key)
+- **Caps Lock → ⌃⌥⇧⌘** — hold Caps Lock as a "hyper" modifier and bind conflict-free hotkeys to your window commands and shortcuts. A lone Caps Lock tap does nothing (Settings → General → Hyper Key)
 - **✦ display** — hyper combos render as `✦K` in the command list, the Launcher, and Trast's built-in shortcut recorder; record them directly by holding Caps Lock while recording
-- **No lock, no LED** — while enabled, Caps Lock is remapped at the driver level (to F18) so the lock state and LED stay off; this reverts when the hyper key is disabled or Trast quits, and replaces any Caps Lock remap from System Settings → Keyboard → Modifier Keys while active
+- **No lock, no LED** — while enabled, Caps Lock is remapped at the driver level (to F18) so the lock state and LED stay off; this reverts when the hyper key is disabled or Trast quits, and replaces any Caps Lock remap from System Settings while active
 - Requires Accessibility and Input Monitoring permissions; quit other Caps Lock remappers (e.g. Hyperkey.app) first — two active remappers on the same key conflict
 
-### Other
+## Other
 
 - **App, URL & Folder shortcuts** — bind global hotkeys to launch/activate an app, open a URL, or open a folder or file in Finder / its default app; pin shortcuts to the menu bar
 - **URL scheme** — apply commands from scripts, shells, or other apps
 - **Export / Import** — back up and restore all commands and shortcuts to a JSON file
 - **Launch at login**
 - **Check for Updates** — in-app updater that downloads and installs new releases from GitHub
-- Native SwiftUI menu-bar app (no Dock icon, ~zero footprint)
+- **Launcher transparency** — adjust the panel opacity from the General settings (slider with 5% steps)
 
 ## Requirements
 
@@ -101,18 +108,18 @@ Re-grant Accessibility one last time — after that, rebuilds keep the permissio
 
 ## Usage
 
-- **Menu bar icon** — lists the commands and shortcuts you've pinned (toggle per item in Settings), plus Launcher, Settings, and Check for Updates
 - **Launcher** — press the global hotkey (configurable in Settings → General); type to search everything, or Tab to cycle through the actions list and back to search; ↑↓ to navigate results or the actions list, Return to select, Esc steps back (category → actions list → close), Cmd+, to open Settings, Cmd+1..7 to jump to a category
-- **Clipboard History** — press the clipboard hotkey (configurable in Settings → Window) to open the Launcher on the Clipboard tab, or get there via the actions list / search; type to filter the full history and select to paste into the frontmost app
-- **Scratchpad** — press the scratchpad hotkey (configurable in Settings → Scratchpad) to open the Launcher on the Scratchpad tab; press again to close
-- **Settings** — sidebar navigation: General, Window, Commands, Shortcuts, Snippets, Clipboard, Scratchpad
+- **Calculator** — type math, a unit conversion, or a currency amount in the launcher; Return copies the result
+- **Clipboard History** — press the clipboard hotkey (Settings → Window) to open the launcher on the Clipboard tab, or get there via the actions list / search; type to filter the full history and select to paste into the frontmost app
+- **Scratchpad** — press the scratchpad hotkey (Settings → Scratchpad) to open the launcher on the Scratchpad tab; press again to close
+- **Window commands** — trigger from the launcher, a global hotkey, the menu bar, or the URL scheme
 - **Hyper key** — enable in Settings → General, then hold Caps Lock while recording a command or shortcut hotkey; it registers as ⌃⌥⇧⌘+key and displays as `✦K`
 
 ### Settings
 
 | Section | Contents |
 | --- | --- |
-| **General** | Launcher hotkey, transparency slider, Clipboard/Snippets tab toggles, snippet expansion toggle, hyper key toggle and ✦ display, export/import, launch at login, update checks (automatic on launch plus a manual Check for Updates button), Accessibility status, URL scheme reference |
+| **General** | Launcher hotkey, transparency slider, Clipboard/Snippets tab toggles, calculator (base currency, preferred units), snippet expansion toggle, hyper key toggle and ✦ display, export/import, launch at login, update checks, Accessibility status, URL scheme reference |
 | **Window** | Clipboard History / Restore / Next Window hotkeys, action hotkeys (Center, Move Left/Right/Up/Down, Next Display), edge gap presets |
 | **Commands** | Add, duplicate, delete, and edit window commands: name, hotkey, size, anchor, offsets, pinning, with a live preview |
 | **Shortcuts** | Add shortcuts of three kinds (App, URL/Link, Folder/File), each with its own global hotkey; grouped by type |
@@ -137,7 +144,7 @@ open "trast://command?position=center&relativeWidth=0.5&relativeHeight=0.5"
 
 ## Releases
 
-Releases are automated: pushing a `v*` tag (e.g. `v0.4.0`) runs the GitHub
+Releases are automated: pushing a `v*` tag (e.g. `v0.9.0`) runs the GitHub
 Actions workflow, which tests, builds, and attaches a signed DMG to the
 release. The app's version comes from the tag.
 
@@ -157,9 +164,10 @@ Scripts/update.sh
 
 ## How it works
 
+- The launcher is a borderless, non-activating `NSPanel` that stays floating across all spaces; it captures the frontmost window on open so window commands target the right app
 - The usable area is the screen's `visibleFrame` inset by the edge gap; the anchor pins the window to it, offsets shift the frame, and % sizes are relative to that area
 - Windows are moved and resized through the macOS Accessibility API (`AXUIElement`)
-- The Launcher is a borderless, non-activating `NSPanel` that stays floating across all spaces; it captures the frontmost window on open so window commands target the right app
+- The calculator is a pure recursive-descent parser (math, units, currency); exchange rates come from the ECB via frankfurter.dev, cached at `~/Library/Application Support/Trast/rates.json` and refreshed at most once a day
 - Clipboard history polls `NSPasteboard.general.changeCount` every 0.5s and stores items in a versioned JSON file
 - Snippet expansion uses a listen-only `CGEvent` tap to detect keywords and injects expansion text via `CGEvent`. Template variables (`{{date}}`, `{{clipboard}}`, `{{time}}`) are resolved before injection
 - The hyper key remaps Caps Lock to F18 at the HID driver level (`hidutil`, so the lock state and LED stay off), detects press/release via IOKit HID, and rewrites session events to carry ⌃⌥⇧⌘ while held — so shortcut recorders and hotkey matching see the full combo in any app
