@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.9.0 — Launcher calculator, live app list (Sep 30, 2026)
+
+- Launcher calculator: type math (`2^10*2`), unit conversions (`5 km to miles`, `72 f`), or currency (`10 usd to eur`) in the launcher and press Return to copy the result; the result row appears above all other results
+- Bare amounts (`25 eur`) convert to your base currency and bare units (`5 km`) follow your preferred unit system — both configurable in Settings → General → Calculator
+- Currency rates are ECB daily reference rates, fetched at most once a day, cached on disk, and usable offline
+- Apps installed while Trast is running now appear in the launcher without a relaunch — app directories are watched, rescans are debounced so half-copied bundles are never picked up, and existing entries are reused so only new apps pay the load
+
 ## v0.8.0 — Scratchpad, launcher performance (Sep 29, 2026)
 
 - Launcher Scratchpad: a category for jotting quick notes, with its own hotkey (Settings → Scratchpad to record it), copy-to-clipboard and clear buttons; text persists between opens
