@@ -59,6 +59,7 @@ enum LauncherItem: Identifiable {
     case clipboardEntry(ClipboardItem)
     case snippetEntry(Snippet)
     case categoryEntry(LauncherViewModel.Category)
+    case calculatorResult(title: String, subtitle: String, valueToCopy: String)
 
     var id: String {
         switch self {
@@ -72,6 +73,8 @@ enum LauncherItem: Identifiable {
             return "snippet.\(snippet.id.uuidString)"
         case .categoryEntry(let category):
             return "category.\(category.rawValue)"
+        case .calculatorResult:
+            return "calculator"
         }
     }
 
@@ -91,6 +94,8 @@ enum LauncherItem: Identifiable {
             return snippet.name
         case .categoryEntry(let category):
             return category.label
+        case .calculatorResult(let title, _, _):
+            return title
         }
     }
 
@@ -98,7 +103,7 @@ enum LauncherItem: Identifiable {
         switch self {
         case .command(_, let name), .appShortcut(_, let name), .installedApp(_, let name):
             return name
-        case .launcherAction, .clipboardEntry, .snippetEntry, .categoryEntry:
+        case .launcherAction, .clipboardEntry, .snippetEntry, .categoryEntry, .calculatorResult:
             return nil
         }
     }
@@ -127,6 +132,8 @@ enum LauncherItem: Identifiable {
             return "text.append"
         case .categoryEntry(let category):
             return category.icon
+        case .calculatorResult:
+            return "plus.forwardslash.minus"
         }
     }
 
@@ -136,7 +143,7 @@ enum LauncherItem: Identifiable {
             return app.icon
         case .clipboardEntry(let item):
             return LauncherIconCache.clipboardImage(for: item)
-        case .command, .appShortcut, .launcherAction, .snippetEntry, .categoryEntry:
+        case .command, .appShortcut, .launcherAction, .snippetEntry, .categoryEntry, .calculatorResult:
             return nil
         }
     }
@@ -166,6 +173,8 @@ enum LauncherItem: Identifiable {
             return "Snippets"
         case .categoryEntry:
             return "Browse"
+        case .calculatorResult:
+            return "Calculator"
         }
     }
 
@@ -183,6 +192,8 @@ enum LauncherItem: Identifiable {
             }
         case .snippetEntry(let snippet):
             return snippet.keyword
+        case .calculatorResult(_, let subtitle, _):
+            return subtitle
         default:
             return nil
         }
@@ -339,7 +350,24 @@ final class LauncherViewModel: ObservableObject {
         // Scope to the category before ranking so an Apps search doesn't
         // fuzzy-score commands, snippets, and clipboard items.
         let scoped = index.filter { includesInCategory($0.item) }
-        let ranked: [LauncherItem] = FuzzyMatch.rankedIndexed(scoped, query: query).map { $0.item.item }
+        var ranked: [LauncherItem] = FuzzyMatch.rankedIndexed(scoped, query: query).map { $0.item.item }
+
+        // Calculations (math, units, currency) show above other results in
+        // the All category. Parsing is O(query length); the rates autoclosure
+        // only evaluates when the query looks like a currency conversion.
+        if selectedCategory == .all,
+           let calc = Calculator.parse(
+            query: trimmed,
+            rates: ExchangeRateStore.shared.currentRates(),
+            baseCurrency: AppSettings.baseCurrency,
+            preferredUnits: AppSettings.preferredUnits
+           ) {
+            ranked.insert(.calculatorResult(
+                title: calc.display,
+                subtitle: calc.subtitle,
+                valueToCopy: calc.clipboardValue
+            ), at: 0)
+        }
         filtered = ranked
         sections = Self.makeSections(from: ranked)
     }
@@ -366,7 +394,7 @@ final class LauncherViewModel: ObservableObject {
         }
     }
 
-    private static let sectionOrder = ["Browse", "Window Commands", "Actions", "Shortcuts", "Applications", "Clipboard", "Snippets", "Trast"]
+    private static let sectionOrder = ["Calculator", "Browse", "Window Commands", "Actions", "Shortcuts", "Applications", "Clipboard", "Snippets", "Trast"]
 
     private static func makeSections(from items: [LauncherItem]) -> [LauncherSection] {
         sectionOrder.compactMap { title in

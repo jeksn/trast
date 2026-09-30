@@ -11,6 +11,7 @@ VersionCompareTests.runAll(runner)
 AppShortcutCodableTests.runAll(runner)
 SnippetCodableTests.runAll(runner)
 SnippetTemplateTests.runAll(runner)
+CalculatorTests.runAll(runner)
 
 print()
 print(runner.summary)

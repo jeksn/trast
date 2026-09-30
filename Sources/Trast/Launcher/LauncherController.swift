@@ -194,6 +194,12 @@ final class LauncherController: NSObject, NSWindowDelegate {
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(resolved, forType: .string)
             HUD.show("Snippet copied to clipboard")
+        case .calculatorResult(_, _, let value):
+            close()
+            let pasteboard = NSPasteboard.general
+            pasteboard.clearContents()
+            pasteboard.setString(value, forType: .string)
+            HUD.show("Copied")
         case .categoryEntry(let category):
             viewModel.selectCategory(category)
         }

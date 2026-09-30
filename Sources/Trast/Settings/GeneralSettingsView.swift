@@ -14,6 +14,8 @@ struct GeneralSettingsView: View {
     @AppStorage(AppSettings.launcherOpacityKey) private var launcherOpacity: Double = 0.85
     @AppStorage(AppSettings.launcherClipboardTabKey) private var showClipboardTab: Bool = true
     @AppStorage(AppSettings.launcherSnippetsTabKey) private var showSnippetsTab: Bool = true
+    @AppStorage(AppSettings.baseCurrencyKey) private var baseCurrency: String = "USD"
+    @AppStorage(AppSettings.preferredUnitsKey) private var preferredUnits: String = "metric"
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var isTrusted = Accessibility.isTrusted
     @State private var inputMonitoringGranted = false
@@ -110,6 +112,23 @@ struct GeneralSettingsView: View {
                 Text("Hyper Key")
             } footer: {
                 Text("Hold Caps Lock to send ⌃⌥⇧⌘ — a modifier combo no other app uses, ideal for Trast hotkeys. A lone Caps Lock tap does nothing. While enabled, Caps Lock is remapped at the driver level (to F18) so the lock state and LED stay off; this reverts when disabled and replaces any Caps Lock remap from System Settings. Requires Accessibility and Input Monitoring. Quit Hyperkey.app or other Caps Lock remappers first — two active remappers on the same key conflict.")
+            }
+
+            Section {
+                Picker("Base currency", selection: $baseCurrency) {
+                    ForEach(Calculator.supportedCurrencies, id: \.self) { code in
+                        Text(code)
+                    }
+                }
+                Picker("Preferred units", selection: $preferredUnits) {
+                    Text("Metric").tag("metric")
+                    Text("Imperial").tag("imperial")
+                }
+                .pickerStyle(.segmented)
+            } header: {
+                Text("Calculator")
+            } footer: {
+                Text("Type math (2^10*2), unit conversions (5 km to miles), or currency (10 usd to eur) in the Launcher and press Return to copy the result. Bare amounts convert to the base currency; bare units convert to the preferred system. Currency rates come from the ECB and are fetched once a day.")
             }
 
             Section {

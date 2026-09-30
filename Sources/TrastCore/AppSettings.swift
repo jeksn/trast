@@ -19,6 +19,8 @@ public enum AppSettings {
     public static let launcherClipboardTabKey = "launcherClipboardTab"
     public static let launcherSnippetsTabKey = "launcherSnippetsTab"
     public static let scratchpadTextKey = "scratchpadText"
+    public static let baseCurrencyKey = "baseCurrency"
+    public static let preferredUnitsKey = "preferredUnits"
 
     public static var gap: Double {
         UserDefaults.standard.double(forKey: gapKey)
@@ -55,5 +57,17 @@ public enum AppSettings {
 
     public static var launcherSnippetsTab: Bool {
         UserDefaults.standard.object(forKey: launcherSnippetsTabKey) as? Bool ?? true
+    }
+
+    /// Base currency for launcher currency conversions (ISO code).
+    public static var baseCurrency: String {
+        let value = UserDefaults.standard.string(forKey: baseCurrencyKey) ?? "USD"
+        return Calculator.supportedCurrencies.contains(value) ? value : "USD"
+    }
+
+    /// "metric" or "imperial" — the system bare-unit launcher queries
+    /// convert into.
+    public static var preferredUnits: String {
+        UserDefaults.standard.string(forKey: preferredUnitsKey) ?? "metric"
     }
 }
