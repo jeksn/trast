@@ -20,8 +20,24 @@ struct AppChooserItem: Identifiable, Hashable {
 }
 
 enum AppScanner {
+    /// Posted when a refresh changed the cached app list (e.g. an app was
+    /// installed or removed while Trast runs). Posted from a background queue.
+    static let appsDidUpdate = Notification.Name("TrastAppsDidUpdate")
+
     private static let cacheQueue = DispatchQueue(label: "trast.appscanner.cache")
     private static var cached: [AppChooserItem] = []
+    /// Reusable scan results keyed by bundle path, so a refresh only pays the
+    /// expensive part (Bundle load + icon) for apps that are actually new.
+    private static var entries: [String: AppChooserItem] = [:]
+    private static var watchers: [DispatchSourceFileSystemObject] = []
+    private static var pendingRefresh: DispatchWorkItem?
+
+    static let directories: [URL] = [
+        URL(fileURLWithPath: "/Applications"),
+        URL(fileURLWithPath: "/System/Applications"),
+        URL(fileURLWithPath: "/System/Library/CoreServices/Applications"),
+        FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Applications"),
+    ]
 
     static func cachedApps() -> [AppChooserItem] {
         cacheQueue.sync { cached }
@@ -29,52 +45,105 @@ enum AppScanner {
 
     static func refresh() {
         DispatchQueue.global(qos: .utility).async {
-            let apps = installedApps()
-            cacheQueue.sync { cached = apps }
+            scan(reusing: cacheQueue.sync { entries }, updatesCache: true)
         }
     }
 
+    /// Watches the app directories so apps installed while Trast runs show up
+    /// in the launcher without a relaunch — the same reason Spotlight always
+    /// has new apps (a filesystem watcher), minus the system daemon. The
+    /// launcher keeps serving from the cached list; the watcher only triggers
+    /// background refreshes.
+    static func startWatching() {
+        cacheQueue.async {
+            guard watchers.isEmpty else { return }
+            for directory in directories where FileManager.default.fileExists(atPath: directory.path) {
+                let fd = open(directory.path, O_EVTONLY)
+                guard fd >= 0 else { continue }
+                let source = DispatchSource.makeFileSystemObjectSource(
+                    fileDescriptor: fd,
+                    eventMask: .write,
+                    queue: cacheQueue
+                )
+                source.setEventHandler { scheduleRefresh() }
+                source.resume()
+                watchers.append(source)
+            }
+        }
+    }
+
+    /// Debounced refresh: installing an app writes many events while the
+    /// bundle copies; wait for the directory to settle before scanning so a
+    /// half-copied .app is never picked up. Runs on cacheQueue (the watchers'
+    /// queue), so the cache is read directly — a sync call here would
+    /// deadlock.
+    private static func scheduleRefresh() {
+        pendingRefresh?.cancel()
+        let snapshot = entries
+        let work = DispatchWorkItem { scan(reusing: snapshot, updatesCache: true) }
+        pendingRefresh = work
+        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 1.0, execute: work)
+    }
+
     static func installedApps() -> [AppChooserItem] {
+        scan(reusing: [:], updatesCache: false).items
+    }
+
+    /// Scans the app directories, reusing cached entries for paths that are
+    /// already known. Updates the persistent cache (and posts
+    /// `appsDidUpdate`) when `updatesCache` is set — one-shot
+    /// `installedApps()` scans leave the cache untouched.
+    @discardableResult
+    private static func scan(reusing snapshot: [String: AppChooserItem], updatesCache: Bool) -> (items: [AppChooserItem], entries: [String: AppChooserItem]) {
         var seen = Set<String>()
         var items: [AppChooserItem] = []
+        var newEntries: [String: AppChooserItem] = [:]
 
-        let directories = [
-            URL(fileURLWithPath: "/Applications"),
-            URL(fileURLWithPath: "/System/Applications"),
-            URL(fileURLWithPath: "/System/Library/CoreServices/Applications"),
-            FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Applications"),
-        ].filter { FileManager.default.fileExists(atPath: $0.path) }
+        func addApp(at url: URL) {
+            let path = url.path
+            guard !seen.contains(path) else { return }
+            seen.insert(path)
+            guard let item = snapshot[path] ?? makeItem(for: url) else { return }
+            items.append(item)
+            newEntries[path] = item
+        }
 
         for directory in directories {
-            guard let enumerator = FileManager.default.enumerator(
-                at: directory,
-                includingPropertiesForKeys: nil,
-                options: [.skipsPackageDescendants, .skipsHiddenFiles],
-                errorHandler: nil
-            ) else { continue }
+            guard FileManager.default.fileExists(atPath: directory.path),
+                  let enumerator = FileManager.default.enumerator(
+                    at: directory,
+                    includingPropertiesForKeys: nil,
+                    options: [.skipsPackageDescendants, .skipsHiddenFiles],
+                    errorHandler: nil
+                  ) else { continue }
 
             for case let fileURL as URL in enumerator {
                 guard fileURL.pathExtension == "app" else { continue }
-                let path = fileURL.path
-                guard !seen.contains(path) else { continue }
-                seen.insert(path)
-                if let item = makeItem(for: fileURL) {
-                    items.append(item)
-                }
+                addApp(at: fileURL)
             }
         }
 
         for app in NSWorkspace.shared.runningApplications where app.activationPolicy == .regular {
-            guard let url = app.bundleURL, !seen.contains(url.path) else { continue }
-            seen.insert(url.path)
-            if let item = makeItem(for: url) {
-                items.append(item)
-            }
+            guard let url = app.bundleURL else { continue }
+            addApp(at: url)
         }
 
-        return items.sorted {
+        let sorted = items.sorted {
             $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
         }
+
+        if updatesCache {
+            let changed = cacheQueue.sync {
+                let changed = cached != sorted
+                entries = newEntries
+                cached = sorted
+                return changed
+            }
+            if changed {
+                NotificationCenter.default.post(name: appsDidUpdate, object: nil)
+            }
+        }
+        return (sorted, newEntries)
     }
 
     private static func makeItem(for url: URL) -> AppChooserItem? {

@@ -15,7 +15,7 @@ struct TrastApp: App {
                 .environmentObject(store)
                 .environmentObject(appShortcutStore)
         } label: {
-            Image(nsImage: StatusBarIcon.image)
+            StatusBarLabel()
         }
         .menuBarExtraStyle(.menu)
 
@@ -26,6 +26,37 @@ struct TrastApp: App {
                 .environmentObject(snippetStore)
         }
         .windowResizability(.contentSize)
+    }
+}
+
+/// Shared open-settings sequence used by the menu bar, the launcher, and the
+/// notification observer.
+enum SettingsWindow {
+    static func open(_ openWindow: OpenWindowAction) {
+        NSApp.activate(ignoringOtherApps: true)
+        openWindow(id: "settings")
+        DispatchQueue.main.async {
+            NSApp.activate(ignoringOtherApps: true)
+            NSApp.windows
+                .first { !($0 is NSPanel) }?
+                .makeKeyAndOrderFront(nil)
+        }
+    }
+}
+
+/// The menu-bar label is alive for the entire app lifetime, unlike the
+/// `.menu`-style MenuBarExtra content, which SwiftUI only instantiates while
+/// the menu is open — so this is the only reliable observer for
+/// open-settings requests posted while the menu is closed (e.g. from the
+/// launcher).
+private struct StatusBarLabel: View {
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some View {
+        Image(nsImage: StatusBarIcon.image)
+            .onReceive(NotificationCenter.default.publisher(for: .openSettings)) { _ in
+                SettingsWindow.open(openWindow)
+            }
     }
 }
 
@@ -92,14 +123,7 @@ struct MenuContent: View {
     }
 
     private func openSettingsWindow() {
-        NSApp.activate(ignoringOtherApps: true)
-        openWindow(id: "settings")
-        DispatchQueue.main.async {
-            NSApp.activate(ignoringOtherApps: true)
-            NSApp.windows
-                .first { !($0 is NSPanel) }?
-                .makeKeyAndOrderFront(nil)
-        }
+        SettingsWindow.open(openWindow)
     }
 }
 

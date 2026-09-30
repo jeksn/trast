@@ -32,6 +32,9 @@ struct CommandListView: View {
                 }
             }
             .listStyle(.sidebar)
+            // Cancel the sidebar list's top content inset so the first
+            // section header doesn't sit far below the toolbar.
+            .padding(.top, -10)
             .frame(width: 260)
 
             Group {

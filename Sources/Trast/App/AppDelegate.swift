@@ -5,6 +5,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         ConfigMigration.migrateIfNeeded()
         AppScanner.refresh()
+        AppScanner.startWatching()
         ClipboardMonitor.shared.start()
         SnippetExpander.shared.start()
         HyperkeyEngine.shared.start()

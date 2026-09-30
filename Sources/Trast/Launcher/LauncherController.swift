@@ -16,6 +16,7 @@ final class LauncherController: NSObject, NSWindowDelegate {
     private var target: WindowRef?
     private var keyMonitor: Any?
     private var resizeCancellable: AnyCancellable?
+    private var appsUpdateObserver: NSObjectProtocol?
     private var lastTargetFrame: NSRect?
     private var resizeScheduled = false
     private var lastLayoutSignature: LayoutSignature?
@@ -27,6 +28,21 @@ final class LauncherController: NSObject, NSWindowDelegate {
         let category: LauncherViewModel.Category
         let sectionTitles: [String]
         let rowCount: Int
+    }
+
+    override private init() {
+        super.init()
+        // Apps installed while Trast runs: the scanner's directory watcher
+        // refreshes the cache in the background; if the panel is open, pick
+        // up the new items live, otherwise the next open reads the fresh cache.
+        appsUpdateObserver = NotificationCenter.default.addObserver(
+            forName: AppScanner.appsDidUpdate,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self, self.panel?.isVisible == true else { return }
+            self.viewModel.items = self.makeItems()
+        }
     }
 
     func toggle() {
@@ -368,16 +384,11 @@ final class LauncherController: NSObject, NSWindowDelegate {
     }
 
     private func openSettingsWindow() {
-        DispatchQueue.main.async {
-            NSApp.activate(ignoringOtherApps: true)
-            NotificationCenter.default.post(name: .openSettings, object: nil)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                NSApp.activate(ignoringOtherApps: true)
-                NSApp.windows
-                    .first { !($0 is NSPanel) }?
-                    .makeKeyAndOrderFront(nil)
-            }
-        }
+        // The observer on the menu-bar label (StatusBarLabel) owns the full
+        // open sequence — the .menu-style MenuBarExtra content that used to
+        // observe this is only instantiated while the menu is open, so it
+        // never fired from here.
+        NotificationCenter.default.post(name: .openSettings, object: nil)
     }
 
     private func pasteClipboardItem(_ item: ClipboardItem) {
