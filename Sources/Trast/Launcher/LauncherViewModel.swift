@@ -407,7 +407,9 @@ final class LauncherViewModel: ObservableObject {
 
     /// Recomputes `filtered` and `sections` exactly once per input change.
     /// These are read repeatedly by the view body (once per row), so they are
-    /// stored instead of computed.
+    /// stored instead of computed. `filtered` is always the sections flattened
+    /// in display order — the selection walks what's on screen, so no
+    /// visible row can be skipped or visited out of order.
     private func updateResults() {
         let trimmed = query.trimmingCharacters(in: .whitespaces)
 
@@ -415,8 +417,8 @@ final class LauncherViewModel: ObservableObject {
             if selectedCategory == .all {
                 if showsRecentActivity {
                     let activity = recentActivityItems()
-                    filtered = activity
                     sections = Self.makeRecentSections(from: activity, favorites: favorites)
+                    filtered = sections.flatMap { $0.items }
                 } else {
                     filtered = []
                     sections = []
@@ -424,8 +426,8 @@ final class LauncherViewModel: ObservableObject {
                 return
             }
             let recent = recentItems(for: selectedCategory)
-            filtered = recent
             sections = Self.makeSections(from: recent)
+            filtered = sections.flatMap { $0.items }
             return
         }
 
@@ -450,8 +452,8 @@ final class LauncherViewModel: ObservableObject {
                 valueToCopy: calc.clipboardValue
             ), at: 0)
         }
-        filtered = ranked
         sections = Self.makeSections(from: ranked)
+        filtered = sections.flatMap { $0.items }
     }
 
     private func includesInCategory(_ entry: SearchEntry) -> Bool {
