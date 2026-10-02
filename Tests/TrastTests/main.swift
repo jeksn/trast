@@ -11,6 +11,7 @@ VersionCompareTests.runAll(runner)
 AppShortcutCodableTests.runAll(runner)
 SnippetCodableTests.runAll(runner)
 NoteCodableTests.runAll(runner)
+TextTransformTests.runAll(runner)
 SnippetTemplateTests.runAll(runner)
 CalculatorTests.runAll(runner)
 

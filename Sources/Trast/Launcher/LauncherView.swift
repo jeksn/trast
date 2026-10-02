@@ -19,6 +19,9 @@ struct LauncherView: View {
             if viewModel.showsActions {
                 actionsList
                     .transition(.blurFade)
+            } else if viewModel.selectedCategory == .textTransformer {
+                transformerTool
+                    .transition(.blurFade)
             } else if viewModel.selectedCategory == .scratchpad {
                 scratchpad
                     .transition(.blurFade)
@@ -333,8 +336,99 @@ struct LauncherView: View {
         }
     }
 
-    private var notesList: some View {
+    private var transformerTool: some View {
         VStack(spacing: 0) {
+            switch viewModel.transformerState {
+            case .capturing:
+                HStack(spacing: 8) {
+                    ProgressView()
+                        .controlSize(.small)
+                    Text("Reading selection…")
+                        .font(.system(size: 14))
+                        .foregroundStyle(.secondary)
+                }
+                .padding(24)
+
+            case .noSelection:
+                VStack(spacing: 6) {
+                    Image(systemName: "textformat")
+                        .font(.system(size: 20))
+                        .foregroundStyle(.secondary)
+                    Text("Nothing selected")
+                        .font(.system(size: 14, weight: .medium))
+                    Text("Select text in any app, then open Text Transformer")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+                .padding(24)
+                .frame(maxWidth: .infinity)
+
+            case .ready:
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Selected text")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                    Text(singleLinePreview(viewModel.transformerText))
+                        .font(.system(size: 12, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
+                .padding(.bottom, 8)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                Divider()
+
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        LazyVStack(spacing: 0) {
+                            ForEach(Array(TextTransform.allCases.enumerated()), id: \.element.id) { index, transform in
+                                TransformRowView(
+                                    transform: transform,
+                                    preview: singleLinePreview(transform.apply(to: viewModel.transformerText)),
+                                    isSelected: index == viewModel.transformSelectedIndex
+                                )
+                                .id(transform.id)
+                                .onTapGesture {
+                                    LauncherController.shared.applySelectedTransform()
+                                }
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    .frame(maxHeight: 360)
+                    .onChange(of: viewModel.transformSelectedIndex) { index in
+                        if let transform = TextTransform.allCases[safe: index] {
+                            proxy.scrollTo(transform.id, anchor: .center)
+                        }
+                    }
+                }
+
+                Divider()
+
+                HStack {
+                    Text("Return replaces the selection")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                    Spacer()
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+            }
+        }
+    }
+
+    /// A one-line preview of (possibly multiline) text for transformer rows.
+    private func singleLinePreview(_ text: String) -> String {
+        let flattened = text
+            .split(separator: "\n", omittingEmptySubsequences: false)
+            .joined(separator: " ")
+            .trimmingCharacters(in: .whitespaces)
+        return String(flattened.prefix(120))
+    }
+
+    private var notesList: some View {        VStack(spacing: 0) {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(spacing: 0) {
@@ -511,6 +605,45 @@ struct LauncherCategoryTile: View {
         if isSelected { return Color.accentColor.opacity(0.25) }
         if isHovered { return Color.accentColor.opacity(0.10) }
         return Color.secondary.opacity(0.08)
+    }
+}
+
+struct TransformRowView: View {
+    let transform: TextTransform
+    let preview: String
+    let isSelected: Bool
+
+    @State private var isHovered = false
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "textformat")
+                .foregroundStyle(.secondary)
+                .frame(width: 22, height: 22)
+            Text(transform.name)
+                .font(.system(size: 14, weight: .medium))
+                .lineLimit(1)
+            Text(preview)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .truncationMode(.middle)
+            Spacer()
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 9)
+        .background(
+            RoundedRectangle(cornerRadius: 6)
+                .fill(rowBackground)
+        )
+        .padding(.horizontal, 6)
+        .onHover { isHovered = $0 }
+    }
+
+    private var rowBackground: Color {
+        if isSelected { return Color.accentColor.opacity(0.25) }
+        if isHovered { return Color.accentColor.opacity(0.10) }
+        return Color.clear
     }
 }
 

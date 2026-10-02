@@ -137,6 +137,18 @@ final class LauncherController: NSObject, NSWindowDelegate {
         panel?.orderOut(nil)
     }
 
+    /// Applies the highlighted transformation to the captured selection:
+    /// closes the panel first (the target app stays frontmost — the panel
+    /// is non-activating), then replaces the selection and shows feedback.
+    func applySelectedTransform() {
+        guard viewModel.selectedCategory == .textTransformer,
+              let transform = viewModel.selectedTransform() else { return }
+        let text = viewModel.transformerText
+        close()
+        TextTransformerController.shared.apply(transform, to: text)
+        HUD.show("Selection replaced")
+    }
+
     func handleEscape() {
         if viewModel.showsActions {
             close()
@@ -371,6 +383,31 @@ final class LauncherController: NSObject, NSWindowDelegate {
                 // equivalent of the right-click context menu.
                 if event.keyCode == 40 {
                     self.showOptionsForSelectedItem()
+                    return nil
+                }
+            }
+
+            // Text Transformer mode: arrows pick a transformation, Return
+            // replaces the selection, everything else is swallowed (there
+            // is no text field to receive typing).
+            if self.viewModel.selectedCategory == .textTransformer && !self.viewModel.showsActions {
+                switch event.keyCode {
+                case 125:
+                    self.viewModel.moveTransformSelection(1)
+                    return nil
+                case 126:
+                    self.viewModel.moveTransformSelection(-1)
+                    return nil
+                case 36, 76:
+                    self.applySelectedTransform()
+                    return nil
+                case 53:
+                    self.handleEscape()
+                    return nil
+                case 48:
+                    self.viewModel.handleTab(shift: event.modifierFlags.contains(.shift))
+                    return nil
+                default:
                     return nil
                 }
             }

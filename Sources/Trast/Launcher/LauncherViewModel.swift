@@ -267,7 +267,7 @@ final class LauncherViewModel: ObservableObject {
         /// selecting them (keyboard, Cmd+number, click) is a no-op.
         var isPlaceholder: Bool {
             switch self {
-            case .textTransformer, .aiChat: return true
+            case .aiChat: return true
             default: return false
             }
         }
@@ -338,6 +338,18 @@ final class LauncherViewModel: ObservableObject {
     @Published var showsRecentActivity = false
     @Published var scratchpadMode: ScratchpadMode = .editor
     @Published var notesSelectedIndex = 0
+
+    /// The Text Transformer tool captures the frontmost app's selection on
+    /// entry and previews transformations over it.
+    enum TransformerState {
+        case capturing
+        case noSelection
+        case ready
+    }
+
+    @Published var transformerState: TransformerState = .capturing
+    @Published var transformerText: String = ""
+    @Published var transformSelectedIndex = 0
     @Published private(set) var filtered: [LauncherItem] = []
     @Published private(set) var sections: [LauncherSection] = []
     /// Mirrors `FavoritesStore` so rows re-render when a favorite toggles.
@@ -424,6 +436,36 @@ final class LauncherViewModel: ObservableObject {
     func openSelectedNote() {
         guard let note = NotesStore.shared.notes[safe: notesSelectedIndex] else { return }
         openNote(note.id)
+    }
+
+    // MARK: - Text Transformer
+
+    /// Entering the tool captures what's selected in the frontmost app.
+    /// The completion is dropped if the user left the tool before it lands.
+    func enterTextTransformer() {
+        transformerState = .capturing
+        transformerText = ""
+        transformSelectedIndex = 0
+        TextTransformerController.shared.captureSelection { [weak self] text in
+            guard let self, self.selectedCategory == .textTransformer else { return }
+            if let text, !text.isEmpty {
+                transformerText = text
+                transformerState = .ready
+            } else {
+                transformerState = .noSelection
+            }
+        }
+    }
+
+    func moveTransformSelection(_ delta: Int) {
+        let count = TextTransform.allCases.count
+        guard count > 0 else { return }
+        transformSelectedIndex = (transformSelectedIndex + delta + count) % count
+    }
+
+    func selectedTransform() -> TextTransform? {
+        guard transformerState == .ready else { return nil }
+        return TextTransform.allCases[safe: transformSelectedIndex]
     }
 
     /// Opens the recent-activity view (↓ with an empty query in All):
@@ -717,6 +759,9 @@ final class LauncherViewModel: ObservableObject {
         if category == .scratchpad {
             scratchpadMode = .editor
             notesSelectedIndex = 0
+        }
+        if category == .textTransformer {
+            enterTextTransformer()
         }
     }
 
