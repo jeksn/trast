@@ -360,6 +360,14 @@ final class LauncherController: NSObject, NSWindowDelegate {
                     return nil
                 }
                 if event.keyCode == 125 {
+                    // Down from an empty All search opens the recent-activity
+                    // view (favorites + last used) instead of doing nothing.
+                    if self.viewModel.selectedCategory == .all,
+                       self.viewModel.query.trimmingCharacters(in: .whitespaces).isEmpty,
+                       self.viewModel.filtered.isEmpty {
+                        self.viewModel.showRecentActivity()
+                        return nil
+                    }
                     self.viewModel.moveSelection(1)
                     return nil
                 }

@@ -223,6 +223,8 @@ final class LauncherViewModel: ObservableObject {
         case snippets
         case scratchpad
         case trast
+        case textTransformer
+        case aiChat
 
         var label: String {
             switch self {
@@ -234,6 +236,8 @@ final class LauncherViewModel: ObservableObject {
             case .snippets: return "Snippets"
             case .scratchpad: return "Scratchpad"
             case .trast: return "Trast"
+            case .textTransformer: return "Text Transformer"
+            case .aiChat: return "AI Chat"
             }
         }
 
@@ -247,6 +251,17 @@ final class LauncherViewModel: ObservableObject {
             case .snippets: return "text.append"
             case .scratchpad: return "square.and.pencil"
             case .trast: return "gearshape"
+            case .textTransformer: return "textformat"
+            case .aiChat: return "sparkles"
+            }
+        }
+
+        /// Placeholder tools are shown in the actions view but not built yet —
+        /// selecting them (keyboard, Cmd+number, click) is a no-op.
+        var isPlaceholder: Bool {
+            switch self {
+            case .textTransformer, .aiChat: return true
+            default: return false
             }
         }
 
@@ -260,13 +275,16 @@ final class LauncherViewModel: ObservableObject {
         }
 
         /// Interactive utilities rendered as tiles in the actions view —
-        /// the zone new tools (text transformer, AI chat) join. Tiles wrap
-        /// into a grid, so more tools never means a longer list.
+        /// the zone new tools join. Tiles wrap into a grid, so more tools
+        /// never means a longer list. Placeholder tools always show so the
+        /// direction of the app is visible.
         static var toolCases: [Category] {
             var cases: [Category] = []
             if AppSettings.launcherClipboardTab { cases.append(.clipboard) }
             if AppSettings.launcherSnippetsTab { cases.append(.snippets) }
             cases.append(.scratchpad)
+            cases.append(.textTransformer)
+            cases.append(.aiChat)
             return cases
         }
 
@@ -307,8 +325,11 @@ final class LauncherViewModel: ObservableObject {
     @Published var focusToken = UUID()
     @Published var showsActions = false
     @Published var gridIndex = 0
+    @Published var showsRecentActivity = false
     @Published private(set) var filtered: [LauncherItem] = []
     @Published private(set) var sections: [LauncherSection] = []
+    /// Mirrors `FavoritesStore` so rows re-render when a favorite toggles.
+    @Published private(set) var favorites: Set<String> = FavoritesStore.shared.ids
 
     var items: [LauncherItem] = [] {
         didSet { rebuildIndex(); updateResults() }
@@ -350,6 +371,36 @@ final class LauncherViewModel: ObservableObject {
         focusToken = UUID()
         showsActions = false
         gridIndex = 0
+        showsRecentActivity = false
+        favorites = FavoritesStore.shared.ids
+    }
+
+    /// Opens the recent-activity view (↓ with an empty query in All):
+    /// favorites first, then the last-used items across everything.
+    func showRecentActivity() {
+        showsRecentActivity = true
+        updateResults()
+    }
+
+    func isFavoritable(_ item: LauncherItem) -> Bool {
+        switch item {
+        case .calculatorResult, .clipboardEntry, .categoryEntry:
+            return false
+        default:
+            return true
+        }
+    }
+
+    func isFavorite(_ item: LauncherItem) -> Bool {
+        guard isFavoritable(item) else { return false }
+        return favorites.contains(item.id)
+    }
+
+    func toggleFavorite(_ item: LauncherItem) {
+        guard isFavoritable(item) else { return }
+        FavoritesStore.shared.toggle(item.id)
+        favorites = FavoritesStore.shared.ids
+        updateResults()
     }
 
     /// Recomputes `filtered` and `sections` exactly once per input change.
@@ -360,8 +411,14 @@ final class LauncherViewModel: ObservableObject {
 
         if trimmed.isEmpty {
             if selectedCategory == .all {
-                filtered = []
-                sections = []
+                if showsRecentActivity {
+                    let activity = recentActivityItems()
+                    filtered = activity
+                    sections = Self.makeRecentSections(from: activity, favorites: favorites)
+                } else {
+                    filtered = []
+                    sections = []
+                }
                 return
             }
             let recent = recentItems(for: selectedCategory)
@@ -414,6 +471,8 @@ final class LauncherViewModel: ObservableObject {
         case .trast:
             if case .launcherAction(.clipboardHistory) = entry.item { return false }
             return entry.section == "Trast"
+        case .textTransformer, .aiChat:
+            return false
         }
     }
 
@@ -423,6 +482,49 @@ final class LauncherViewModel: ObservableObject {
         sectionOrder.compactMap { title in
             let sectionItems = items.filter { $0.section == title }
             return sectionItems.isEmpty ? nil : LauncherSection(title: title, items: sectionItems)
+        }
+    }
+
+    /// Sections for the recent-activity view: a Favorites section first,
+    /// then the remaining items grouped as usual.
+    private static func makeRecentSections(from items: [LauncherItem], favorites: Set<String>) -> [LauncherSection] {
+        let favoriteItems = items.filter { favorites.contains($0.id) }
+        let restItems = items.filter { !favorites.contains($0.id) }
+        var result: [LauncherSection] = []
+        if !favoriteItems.isEmpty {
+            result.append(LauncherSection(title: "Favorites", items: favoriteItems))
+        }
+        result.append(contentsOf: makeSections(from: restItems))
+        return result
+    }
+
+    /// The ↓ view: everything you used recently, favorites first (a favorite
+    /// always shows, even if it has no usage), then up to ten recently used
+    /// items. Category entries and calculator results are excluded — the
+    /// list is what you did, not what you could browse.
+    private func recentActivityItems() -> [LauncherItem] {
+        let candidates = index
+            .filter { includesInCategory($0.item) }
+            .map(\.item.item)
+            .filter { item in
+                if case .categoryEntry = item { return false }
+                return true
+            }
+        let sorted = sortedByUsage(candidates)
+        let favoriteItems = sorted.filter { favorites.contains($0.id) }
+        let recentItems = sorted.filter { !favorites.contains($0.id) }.prefix(10)
+        return favoriteItems + Array(recentItems)
+    }
+
+    private func sortedByUsage(_ items: [LauncherItem]) -> [LauncherItem] {
+        let ids = items.map(\.id)
+        let recentIDs = UsageTracker.shared.sortedByRecent(ids)
+        let idOrder = Dictionary(uniqueKeysWithValues: recentIDs.enumerated().map { ($1, $0) })
+        return items.sorted { a, b in
+            let ia = idOrder[a.id] ?? Int.max
+            let ib = idOrder[b.id] ?? Int.max
+            if ia != ib { return ia < ib }
+            return a.title.localizedCaseInsensitiveCompare(b.title) == .orderedAscending
         }
     }
 
@@ -437,16 +539,7 @@ final class LauncherViewModel: ObservableObject {
         }
 
         let categoryItems = index.filter { includesInCategory($0.item) }.map(\.item.item)
-        let ids = categoryItems.map(\.id)
-        let recentIDs = UsageTracker.shared.sortedByRecent(ids)
-        let idOrder = Dictionary(uniqueKeysWithValues: recentIDs.enumerated().map { ($1, $0) })
-        return categoryItems
-            .sorted { (a, b) in
-                let ia = idOrder[a.id] ?? Int.max
-                let ib = idOrder[b.id] ?? Int.max
-                if ia != ib { return ia < ib }
-                return a.title.localizedCaseInsensitiveCompare(b.title) == .orderedAscending
-            }
+        return sortedByUsage(categoryItems)
     }
 
     private static let modeAnimation = Animation.easeInOut(duration: 0.18)
@@ -539,6 +632,7 @@ final class LauncherViewModel: ObservableObject {
     }
 
     func selectCategory(_ category: Category) {
+        guard !category.isPlaceholder else { return }
         selectedCategory = category
         selectedIndex = 0
         query = ""

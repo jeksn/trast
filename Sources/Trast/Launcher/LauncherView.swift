@@ -49,7 +49,10 @@ struct LauncherView: View {
                                             item: item,
                                             isSelected: item.id == selectedID,
                                             query: viewModel.query,
-                                            hotkeyDisplay: viewModel.hotkeyDisplay(for: item)
+                                            hotkeyDisplay: viewModel.hotkeyDisplay(for: item),
+                                            canFavorite: viewModel.isFavoritable(item),
+                                            isFavorite: viewModel.isFavorite(item),
+                                            onToggleFavorite: { viewModel.toggleFavorite(item) }
                                         )
                                             .id(item.id)
                                             .onTapGesture { onSelect(item) }
@@ -65,6 +68,13 @@ struct LauncherView: View {
                             }
                         }
                     }
+                } else if viewModel.selectedCategory == .all && !viewModel.showsRecentActivity {
+                    Text("Press ↓ for favorites and recent activity")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
         }
@@ -136,9 +146,14 @@ struct LauncherView: View {
                         LauncherToolTile(
                             category: category,
                             number: index + 1,
-                            isSelected: index == viewModel.gridIndex
+                            isSelected: index == viewModel.gridIndex,
+                            isPlaceholder: category.isPlaceholder
                         )
-                        .onTapGesture { viewModel.selectCategory(category) }
+                        .onTapGesture {
+                            if !category.isPlaceholder {
+                                viewModel.selectCategory(category)
+                            }
+                        }
                     }
                 }
             }
@@ -295,6 +310,9 @@ struct LauncherToolTile: View {
     let category: LauncherViewModel.Category
     let number: Int
     let isSelected: Bool
+    var isPlaceholder = false
+
+    @State private var isHovered = false
 
     var body: some View {
         VStack(spacing: 6) {
@@ -309,7 +327,7 @@ struct LauncherToolTile: View {
             HStack(spacing: 2) {
                 Image(systemName: "command")
                     .font(.system(size: 7, weight: .bold))
-                Text("\(number)")
+                Text(isPlaceholder ? "soon" : "\(number)")
                     .font(.system(size: 9, weight: .bold))
             }
             .foregroundStyle(.secondary)
@@ -319,11 +337,20 @@ struct LauncherToolTile: View {
         }
         .padding(.vertical, 12)
         .frame(maxWidth: .infinity)
+        .opacity(isPlaceholder ? 0.45 : 1)
         .background(
             RoundedRectangle(cornerRadius: 10)
-                .fill(isSelected ? Color.accentColor.opacity(0.25) : Color.secondary.opacity(0.08))
+                .fill(tileBackground)
         )
         .contentShape(RoundedRectangle(cornerRadius: 10))
+        .onHover { isHovered = $0 }
+        .help(isPlaceholder ? "Coming soon" : category.label)
+    }
+
+    private var tileBackground: Color {
+        if isSelected { return Color.accentColor.opacity(0.25) }
+        if isHovered && !isPlaceholder { return Color.accentColor.opacity(0.10) }
+        return Color.secondary.opacity(0.08)
     }
 }
 
@@ -331,6 +358,8 @@ struct LauncherCategoryTile: View {
     let category: LauncherViewModel.Category
     let number: Int
     let isSelected: Bool
+
+    @State private var isHovered = false
 
     var body: some View {
         HStack(spacing: 10) {
@@ -358,9 +387,16 @@ struct LauncherCategoryTile: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 8)
-                .fill(isSelected ? Color.accentColor.opacity(0.25) : Color.secondary.opacity(0.08))
+                .fill(rowBackground)
         )
         .contentShape(RoundedRectangle(cornerRadius: 8))
+        .onHover { isHovered = $0 }
+    }
+
+    private var rowBackground: Color {
+        if isSelected { return Color.accentColor.opacity(0.25) }
+        if isHovered { return Color.accentColor.opacity(0.10) }
+        return Color.secondary.opacity(0.08)
     }
 }
 
@@ -369,6 +405,9 @@ struct LauncherRowView: View {
     let isSelected: Bool
     let query: String
     let hotkeyDisplay: String?
+    var canFavorite = false
+    var isFavorite = false
+    var onToggleFavorite: (() -> Void)? = nil
 
     @State private var isHovered = false
 
@@ -393,6 +432,11 @@ struct LauncherRowView: View {
                     .lineLimit(1)
             }
             Spacer()
+            if isFavorite {
+                Image(systemName: "star.fill")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.yellow)
+            }
             if let hotkeyDisplay {
                 Text(hotkeyDisplay)
                     .font(.system(size: 12, design: .monospaced))
@@ -407,6 +451,13 @@ struct LauncherRowView: View {
         )
         .padding(.horizontal, 6)
         .onHover { isHovered = $0 }
+        .contextMenu {
+            if canFavorite, let onToggleFavorite {
+                Button(isFavorite ? "Remove from Favorites" : "Add to Favorites") {
+                    onToggleFavorite()
+                }
+            }
+        }
     }
 
     private var rowBackground: Color {
