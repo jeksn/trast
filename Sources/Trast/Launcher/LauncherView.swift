@@ -52,7 +52,7 @@ struct LauncherView: View {
                                             hotkeyDisplay: viewModel.hotkeyDisplay(for: item),
                                             canFavorite: viewModel.isFavoritable(item),
                                             isFavorite: viewModel.isFavorite(item),
-                                            onToggleFavorite: { viewModel.toggleFavorite(item) }
+                                            onToggleFavorite: { viewModel.toggleFavorite(item.id) }
                                         )
                                             .id(item.id)
                                             .onTapGesture { onSelect(item) }
@@ -69,7 +69,7 @@ struct LauncherView: View {
                         }
                     }
                 } else if viewModel.selectedCategory == .all && !viewModel.showsRecentActivity {
-                    Text("Press ↓ for favorites and recent activity")
+                    Text("Press ↓ for recent activity · ⇥ for tools · ⌘K for options")
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                         .padding(.horizontal, 16)

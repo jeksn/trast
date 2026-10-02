@@ -147,6 +147,46 @@ final class LauncherController: NSObject, NSWindowDelegate {
         }
     }
 
+    /// The row the options menu (Cmd+K) applies to — set when the menu
+    /// opens, consumed by its action.
+    private var optionsItemID: String?
+
+    /// Cmd+K: shows an NSMenu with the highlighted row's options — the same
+    /// actions as the right-click context menu, driven from the keyboard.
+    /// Pops just under the search bar (the row itself may be anywhere in the
+    /// scrolled list), with the item's title as the menu's header so the
+    /// association is explicit.
+    private func showOptionsForSelectedItem() {
+        guard !viewModel.showsActions,
+              viewModel.selectedCategory != .scratchpad,
+              let item = viewModel.selectedItem(),
+              viewModel.isFavoritable(item) else { return }
+
+        let menu = NSMenu()
+        let header = NSMenuItem(title: item.title, action: nil, keyEquivalent: "")
+        header.isEnabled = false
+        menu.addItem(header)
+        menu.addItem(.separator())
+        let favoriteItem = NSMenuItem(
+            title: viewModel.isFavorite(item) ? "Remove from Favorites" : "Add to Favorites",
+            action: #selector(toggleSelectedFavorite),
+            keyEquivalent: ""
+        )
+        favoriteItem.target = self
+        menu.addItem(favoriteItem)
+        optionsItemID = item.id
+
+        guard let contentView = panel?.contentView else { return }
+        let point = NSPoint(x: 24, y: contentView.bounds.height - 56)
+        menu.popUp(positioning: nil, at: point, in: contentView)
+    }
+
+    @objc private func toggleSelectedFavorite() {
+        guard let optionsItemID else { return }
+        viewModel.toggleFavorite(optionsItemID)
+        self.optionsItemID = nil
+    }
+
     private func handle(_ item: LauncherItem) {
         UsageTracker.shared.record(item.id)
         switch item {
@@ -327,6 +367,12 @@ final class LauncherController: NSObject, NSWindowDelegate {
                     self.viewModel.selectCategoryByIndex(index)
                     return nil
                 }
+                // Cmd+K — options for the highlighted row, the keyboard
+                // equivalent of the right-click context menu.
+                if event.keyCode == 40 {
+                    self.showOptionsForSelectedItem()
+                    return nil
+                }
             }
 
             // Scratchpad mode: the editor needs Return, arrows, and all text
@@ -351,8 +397,8 @@ final class LauncherController: NSObject, NSWindowDelegate {
             case 123, 124, 125, 126:
                 if self.viewModel.showsActions {
                     switch event.keyCode {
-                    case 125: self.viewModel.moveGridSelection(1)
-                    case 126: self.viewModel.moveGridSelection(-1)
+                    case 125: self.viewModel.moveVerticalSelection(1)
+                    case 126: self.viewModel.moveVerticalSelection(-1)
                     case 123: self.viewModel.moveToolSelection(-1)
                     case 124: self.viewModel.moveToolSelection(1)
                     default: break
@@ -373,6 +419,13 @@ final class LauncherController: NSObject, NSWindowDelegate {
                 }
                 if event.keyCode == 126 {
                     self.viewModel.moveSelection(-1)
+                    return nil
+                }
+                if event.keyCode == 124,
+                   self.viewModel.query.trimmingCharacters(in: .whitespaces).isEmpty {
+                    // Right from an empty search opens the tools view — the
+                    // same as Tab, but spatially it reads as "into the menu".
+                    self.viewModel.enterActionsMode()
                     return nil
                 }
                 return event

@@ -325,6 +325,9 @@ final class LauncherViewModel: ObservableObject {
     @Published var focusToken = UUID()
     @Published var showsActions = false
     @Published var gridIndex = 0
+    /// The tool tile you left when dropping into the browse list, so ↑
+    /// returns to it.
+    private var lastToolIndex = 0
     @Published var showsRecentActivity = false
     @Published private(set) var filtered: [LauncherItem] = []
     @Published private(set) var sections: [LauncherSection] = []
@@ -396,9 +399,8 @@ final class LauncherViewModel: ObservableObject {
         return favorites.contains(item.id)
     }
 
-    func toggleFavorite(_ item: LauncherItem) {
-        guard isFavoritable(item) else { return }
-        FavoritesStore.shared.toggle(item.id)
+    func toggleFavorite(_ id: String) {
+        FavoritesStore.shared.toggle(id)
         favorites = FavoritesStore.shared.ids
         updateResults()
     }
@@ -598,11 +600,35 @@ final class LauncherViewModel: ObservableObject {
         }
     }
 
-    func moveGridSelection(_ delta: Int) {
-        let count = Category.gridCases.count
-        guard count > 0 else { return }
+    /// Up/down arrows in the actions view follow the visual layout, not a
+    /// flat wrap: within the browse list they walk its rows; down from a
+    /// tool drops into the first browse row; up from the browse list
+    /// returns to the tool you left. Clamped at both ends — Tab cycles, Esc
+    /// closes, so wrapping on arrows is never needed and always surprising.
+    func moveVerticalSelection(_ delta: Int) {
+        let tools = Category.toolCases
+        let browse = Category.browseCases
+        let toolCount = tools.count
+        let totalCount = toolCount + browse.count
+        guard totalCount > 0 else { return }
+
+        var next = gridIndex
+        if gridIndex < toolCount {
+            guard delta > 0, !browse.isEmpty else { return }
+            lastToolIndex = gridIndex
+            next = toolCount
+        } else if delta > 0 {
+            guard gridIndex + 1 < totalCount else { return }
+            next = gridIndex + 1
+        } else if gridIndex > toolCount {
+            next = gridIndex - 1
+        } else {
+            guard !tools.isEmpty else { return }
+            next = min(lastToolIndex, toolCount - 1)
+        }
+        guard next != gridIndex else { return }
         withAnimation(Self.modeAnimation) {
-            gridIndex = (gridIndex + delta + count) % count
+            gridIndex = next
         }
     }
 
