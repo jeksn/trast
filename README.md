@@ -21,7 +21,7 @@ Press the launcher hotkey (Settings → General to record it) and type. Results 
 - **Calculator** — type math (`2^10*2`), unit conversions (`5 km to miles`, `72 f`), or currency (`10 usd to eur`) and the result appears above all other results; Return copies it. Bare amounts (`25 eur`) convert to your base currency, bare units (`5 km`) follow your preferred system (Settings → General → Calculator). Currency uses ECB daily reference rates, fetched at most once a day, cached on disk, and usable offline
 - **Clipboard history** — every copy is captured (up to the configured limit, 100 by default); search matches the full content of each item, not just the first line, and selecting pastes straight into the frontmost app. A dedicated hotkey (Settings → Window) opens the launcher on the Clipboard tab
 - **Snippets** — the Snippets tab lists your snippets; select to copy the resolved text (with template variables filled in)
-- **Scratchpad** — a quick-notes pad that persists across opens and relaunches, with Copy and Clear buttons. A dedicated hotkey (Settings → Scratchpad) opens the launcher straight on it
+- **Scratchpad** — a quick-notes pad that persists across opens and relaunches: ⌘N (or the New button) starts a fresh note, ⌘P lists all notes as one-line excerpts with their last-edited time, Return opens one. The editor footer has Copy and Delete. A dedicated hotkey (Settings → Scratchpad) opens the launcher straight on it
 - **Actions view** — Tab (or → with an empty search) fades the search bar into a two-zone view: a **Tools** grid of tiles (Scratchpad, Clipboard, Snippets, plus Text Transformer and AI Chat as coming-soon placeholders) above a **Browse** list of categories (Window Commands, Shortcuts, Apps, Trast), everything with a ⌘-number badge. ↑↓ follow the layout — walk the browse rows, drop into them from the tools, return to the tool you left — ←→ step within the tool row, Tab cycles through everything and back to search, Return enters, and Cmd+1..7 jumps from anywhere
 - **Favorites & recent activity** — press ↓ with an empty search to see your favorites and the last things you used, favorites pinned on top; right-click any result or press ⌘K on the highlighted row to favorite it
 - **Recent activity** — entering a category without typing shows recently used items from that category; searching inside a category scopes the search to it, the main search fuzzy-searches everything
@@ -112,7 +112,7 @@ Re-grant Accessibility one last time — after that, rebuilds keep the permissio
 - **Launcher** — press the global hotkey (configurable in Settings → General); type to search everything, or Tab/→ to cycle through the tools and categories and back to search; ↓ with an empty search shows favorites and recent activity; ↑↓ to navigate results or the actions view, ←→ to step within the tool row, Return to select, right-click or ⌘K a result for more options (favorites), Esc steps back (category → actions view → close), Cmd+, to open Settings, Cmd+1..7 to jump to a tool or category
 - **Calculator** — type math, a unit conversion, or a currency amount in the launcher; Return copies the result
 - **Clipboard History** — press the clipboard hotkey (Settings → Window) to open the launcher on the Clipboard tab, or get there via the actions list / search; type to filter the full history and select to paste into the frontmost app
-- **Scratchpad** — press the scratchpad hotkey (Settings → Scratchpad) to open the launcher on the Scratchpad tab; press again to close
+- **Scratchpad** — press the scratchpad hotkey (Settings → Scratchpad) to open the launcher on the Scratchpad tab; press again to close. Inside it: ⌘N new note, ⌘P notes list, Return opens, Esc goes back
 - **Window commands** — trigger from the launcher, a global hotkey, the menu bar, or the URL scheme
 - **Hyper key** — enable in Settings → General, then hold Caps Lock while recording a command or shortcut hotkey; it registers as ⌃⌥⇧⌘+key and displays as `✦K`
 
@@ -126,7 +126,7 @@ Re-grant Accessibility one last time — after that, rebuilds keep the permissio
 | **Shortcuts** | Add shortcuts of three kinds (App, URL/Link, Folder/File), each with its own global hotkey; grouped by type |
 | **Snippets** | Create text snippets with keywords and template variables; toggle individual snippets on/off; grouped by enabled/disabled |
 | **Clipboard** | Monitor toggle, history size, auto-clear interval, clear history |
-| **Scratchpad** | Scratchpad hotkey, clear scratchpad |
+| **Scratchpad** | Scratchpad hotkey, delete all notes |
 
 ### URL scheme
 

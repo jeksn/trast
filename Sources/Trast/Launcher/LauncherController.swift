@@ -376,17 +376,52 @@ final class LauncherController: NSObject, NSWindowDelegate {
             }
 
             // Scratchpad mode: the editor needs Return, arrows, and all text
-            // keys; only Esc and Tab are launcher navigation.
+            // keys; only Esc and Tab are launcher navigation. Cmd+N creates
+            // a note, Cmd+P toggles the notes list; the list handles its own
+            // navigation.
             if self.viewModel.selectedCategory == .scratchpad && !self.viewModel.showsActions {
-                switch event.keyCode {
-                case 53:
-                    self.handleEscape()
+                if event.modifierFlags.contains(.command), event.keyCode == 45 {
+                    self.viewModel.createNote()
                     return nil
-                case 48:
-                    self.viewModel.handleTab(shift: event.modifierFlags.contains(.shift))
+                }
+                if event.modifierFlags.contains(.command), event.keyCode == 35 {
+                    self.viewModel.toggleNotesList()
                     return nil
-                default:
-                    return event
+                }
+                switch self.viewModel.scratchpadMode {
+                case .editor:
+                    switch event.keyCode {
+                    case 53:
+                        self.handleEscape()
+                        return nil
+                    case 48:
+                        self.viewModel.handleTab(shift: event.modifierFlags.contains(.shift))
+                        return nil
+                    default:
+                        return event
+                    }
+                case .notesList:
+                    switch event.keyCode {
+                    case 125:
+                        self.viewModel.moveNotesSelection(1)
+                        return nil
+                    case 126:
+                        self.viewModel.moveNotesSelection(-1)
+                        return nil
+                    case 36, 76:
+                        self.viewModel.openSelectedNote()
+                        return nil
+                    case 53:
+                        self.viewModel.scratchpadMode = .editor
+                        return nil
+                    case 48:
+                        self.viewModel.handleTab(shift: event.modifierFlags.contains(.shift))
+                        return nil
+                    default:
+                        // No visible editor to receive typing while the
+                        // list is up.
+                        return nil
+                    }
                 }
             }
 

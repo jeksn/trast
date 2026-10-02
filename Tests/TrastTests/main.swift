@@ -10,6 +10,7 @@ HotkeyDisplayTests.runAll(runner)
 VersionCompareTests.runAll(runner)
 AppShortcutCodableTests.runAll(runner)
 SnippetCodableTests.runAll(runner)
+NoteCodableTests.runAll(runner)
 SnippetTemplateTests.runAll(runner)
 CalculatorTests.runAll(runner)
 

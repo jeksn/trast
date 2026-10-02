@@ -207,6 +207,13 @@ struct LauncherSection: Identifiable {
 }
 
 final class LauncherViewModel: ObservableObject {
+    /// The scratchpad tool has two modes: editing the current note, and the
+    /// notes list (Cmd+P) for switching between them.
+    enum ScratchpadMode {
+        case editor
+        case notesList
+    }
+
     /// A launch candidate with everything the search path needs resolved once
     /// when the item list is built, instead of on every keystroke.
     private struct SearchEntry {
@@ -329,6 +336,8 @@ final class LauncherViewModel: ObservableObject {
     /// returns to it.
     private var lastToolIndex = 0
     @Published var showsRecentActivity = false
+    @Published var scratchpadMode: ScratchpadMode = .editor
+    @Published var notesSelectedIndex = 0
     @Published private(set) var filtered: [LauncherItem] = []
     @Published private(set) var sections: [LauncherSection] = []
     /// Mirrors `FavoritesStore` so rows re-render when a favorite toggles.
@@ -375,7 +384,46 @@ final class LauncherViewModel: ObservableObject {
         showsActions = false
         gridIndex = 0
         showsRecentActivity = false
+        scratchpadMode = .editor
+        notesSelectedIndex = 0
         favorites = FavoritesStore.shared.ids
+    }
+
+    // MARK: - Scratchpad notes
+
+    /// Cmd+N / the New button: a fresh empty note, opened in the editor.
+    func createNote() {
+        NotesStore.shared.createNote()
+        scratchpadMode = .editor
+        notesSelectedIndex = 0
+        focusToken = UUID()
+    }
+
+    /// Cmd+P: switch between the editor and the notes list.
+    func toggleNotesList() {
+        scratchpadMode = scratchpadMode == .notesList ? .editor : .notesList
+        notesSelectedIndex = 0
+        if scratchpadMode == .editor {
+            focusToken = UUID()
+        }
+    }
+
+    /// Opens a note from the list in the editor.
+    func openNote(_ id: UUID) {
+        NotesStore.shared.open(id: id)
+        scratchpadMode = .editor
+        focusToken = UUID()
+    }
+
+    func moveNotesSelection(_ delta: Int) {
+        let count = NotesStore.shared.notes.count
+        guard count > 0 else { return }
+        notesSelectedIndex = (notesSelectedIndex + delta + count) % count
+    }
+
+    func openSelectedNote() {
+        guard let note = NotesStore.shared.notes[safe: notesSelectedIndex] else { return }
+        openNote(note.id)
     }
 
     /// Opens the recent-activity view (↓ with an empty query in All):
@@ -666,6 +714,10 @@ final class LauncherViewModel: ObservableObject {
         query = ""
         showsActions = false
         focusToken = UUID()
+        if category == .scratchpad {
+            scratchpadMode = .editor
+            notesSelectedIndex = 0
+        }
     }
 
     func moveSelection(_ delta: Int) {

@@ -6,13 +6,13 @@ struct LauncherView: View {
     @ObservedObject var viewModel: LauncherViewModel
     let onSelect: (LauncherItem) -> Void
     @AppStorage(AppSettings.launcherOpacityKey) private var opacity: Double = 0.85
-    @AppStorage(AppSettings.scratchpadTextKey) private var scratchpadText = ""
+    @ObservedObject private var notesStore = NotesStore.shared
 
     @FocusState private var isFocused: Bool
     @FocusState private var editorFocused: Bool
 
     @State private var showsCopied = false
-    @State private var confirmClear = false
+    @State private var confirmDelete = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -193,16 +193,50 @@ struct LauncherView: View {
     }
 
     private var scratchpad: some View {
+        Group {
+            if viewModel.scratchpadMode == .notesList {
+                notesList
+                    .transition(.blurFade)
+            } else {
+                noteEditor
+                    .transition(.blurFade)
+            }
+        }
+        .onChange(of: viewModel.selectedCategory) { category in
+            if category != .scratchpad {
+                confirmDelete = false
+            }
+        }
+        .onChange(of: viewModel.showsActions) { showsActions in
+            if showsActions {
+                confirmDelete = false
+            }
+        }
+        .onChange(of: viewModel.scratchpadMode) { mode in
+            if mode == .notesList {
+                confirmDelete = false
+            }
+        }
+    }
+
+    private var noteText: String {
+        notesStore.currentNote?.text ?? ""
+    }
+
+    private var noteEditor: some View {
         VStack(spacing: 0) {
             ZStack(alignment: .topLeading) {
-                TextEditor(text: $scratchpadText)
-                    .font(.system(size: 14))
-                    .scrollContentBackground(.hidden)
-                    .focused($editorFocused)
-                    .frame(height: 300)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                if scratchpadText.isEmpty {
+                TextEditor(text: Binding(
+                    get: { notesStore.currentNote?.text ?? "" },
+                    set: { notesStore.updateCurrentNote(text: $0) }
+                ))
+                .font(.system(size: 14))
+                .scrollContentBackground(.hidden)
+                .focused($editorFocused)
+                .frame(height: 300)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                if noteText.isEmpty {
                     Text("Jot something down…")
                         .font(.system(size: 14))
                         .foregroundStyle(.tertiary)
@@ -216,35 +250,59 @@ struct LauncherView: View {
             Divider()
 
             HStack(spacing: 16) {
+                Text("⌘N New · ⌘P Notes")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+
                 Spacer()
 
-                if confirmClear {
-                    Text("Clear scratchpad?")
+                if confirmDelete {
+                    Text("Delete note?")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                     Button {
-                        scratchpadText = ""
-                        confirmClear = false
+                        if let id = notesStore.currentNote?.id {
+                            notesStore.delete(id: id)
+                        }
+                        confirmDelete = false
                     } label: {
                         Image(systemName: "checkmark.circle")
                             .foregroundStyle(Color.red)
                     }
                     .buttonStyle(.plain)
-                    .help("Clear the scratchpad")
+                    .help("Delete the note")
                     Button {
-                        confirmClear = false
+                        confirmDelete = false
                     } label: {
                         Image(systemName: "xmark.circle")
                             .foregroundStyle(Color.secondary)
                     }
                     .buttonStyle(.plain)
-                    .help("Keep the text")
+                    .help("Keep the note")
                 } else {
+                    Button {
+                        viewModel.createNote()
+                    } label: {
+                        Image(systemName: "plus.square")
+                            .foregroundStyle(Color.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help("New note (⌘N)")
+
+                    Button {
+                        viewModel.toggleNotesList()
+                    } label: {
+                        Image(systemName: "list.bullet")
+                            .foregroundStyle(Color.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help("All notes (⌘P)")
+
                     Button {
                         let pasteboard = NSPasteboard.general
                         pasteboard.clearContents()
-                        pasteboard.setString(scratchpadText, forType: .string)
+                        pasteboard.setString(noteText, forType: .string)
                         showsCopied = true
                         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                             showsCopied = false
@@ -254,34 +312,69 @@ struct LauncherView: View {
                             .foregroundStyle(Color.secondary)
                     }
                     .buttonStyle(.plain)
-                    .disabled(scratchpadText.isEmpty)
+                    .disabled(noteText.isEmpty)
                     .help(showsCopied ? "Copied" : "Copy to clipboard")
-                    .opacity(scratchpadText.isEmpty ? 0.4 : 1)
+                    .opacity(noteText.isEmpty ? 0.4 : 1)
 
                     Button {
-                        confirmClear = true
+                        confirmDelete = true
                     } label: {
-                        Image(systemName: "arrow.circlepath")
+                        Image(systemName: "trash")
                             .foregroundStyle(Color.secondary)
                     }
                     .buttonStyle(.plain)
-                    .disabled(scratchpadText.isEmpty)
-                    .help("Clear and start over")
-                    .opacity(scratchpadText.isEmpty ? 0.4 : 1)
+                    .disabled(noteText.isEmpty)
+                    .help("Delete note")
+                    .opacity(noteText.isEmpty ? 0.4 : 1)
                 }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
         }
-        .onChange(of: viewModel.selectedCategory) { category in
-            if category != .scratchpad {
-                confirmClear = false
+    }
+
+    private var notesList: some View {
+        VStack(spacing: 0) {
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        ForEach(Array(notesStore.notes.enumerated()), id: \.element.id) { index, note in
+                            NoteRowView(
+                                note: note,
+                                isSelected: index == viewModel.notesSelectedIndex
+                            )
+                            .id(note.id)
+                            .onTapGesture { viewModel.openNote(note.id) }
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+                .frame(maxHeight: 360)
+                .onChange(of: viewModel.notesSelectedIndex) { index in
+                    if let note = notesStore.notes[safe: index] {
+                        proxy.scrollTo(note.id, anchor: .center)
+                    }
+                }
             }
-        }
-        .onChange(of: viewModel.showsActions) { showsActions in
-            if showsActions {
-                confirmClear = false
+
+            Divider()
+
+            HStack(spacing: 16) {
+                Text("Return opens · Esc back")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+                Spacer()
+                Button {
+                    viewModel.createNote()
+                } label: {
+                    Image(systemName: "plus.square")
+                        .foregroundStyle(Color.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("New note (⌘N)")
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
         }
     }
 
@@ -418,6 +511,45 @@ struct LauncherCategoryTile: View {
         if isSelected { return Color.accentColor.opacity(0.25) }
         if isHovered { return Color.accentColor.opacity(0.10) }
         return Color.secondary.opacity(0.08)
+    }
+}
+
+struct NoteRowView: View {
+    let note: Note
+    let isSelected: Bool
+
+    @State private var isHovered = false
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "note.text")
+                .foregroundStyle(.secondary)
+                .frame(width: 22, height: 22)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(note.excerpt.isEmpty ? "Empty note" : note.excerpt)
+                    .font(.system(size: 14, weight: .medium))
+                    .lineLimit(1)
+                Text(note.updatedAt, style: .relative)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            Spacer()
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 6)
+                .fill(rowBackground)
+        )
+        .padding(.horizontal, 6)
+        .onHover { isHovered = $0 }
+    }
+
+    private var rowBackground: Color {
+        if isSelected { return Color.accentColor.opacity(0.25) }
+        if isHovered { return Color.accentColor.opacity(0.10) }
+        return Color.clear
     }
 }
 
