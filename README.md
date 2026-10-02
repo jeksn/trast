@@ -22,7 +22,7 @@ Press the launcher hotkey (Settings → General to record it) and type. Results 
 - **Clipboard history** — every copy is captured (up to the configured limit, 100 by default); search matches the full content of each item, not just the first line, and selecting pastes straight into the frontmost app. A dedicated hotkey (Settings → Window) opens the launcher on the Clipboard tab
 - **Snippets** — the Snippets tab lists your snippets; select to copy the resolved text (with template variables filled in)
 - **Scratchpad** — a quick-notes pad that persists across opens and relaunches, with Copy and Clear buttons. A dedicated hotkey (Settings → Scratchpad) opens the launcher straight on it
-- **Actions view** — Tab fades the search bar into a stacked list of categories (Window Commands, Shortcuts, Apps, Clipboard, Snippets, Scratchpad, Trast) with ⌘-number badges. Tab steps through the list and wraps back to search (Shift+Tab cycles backward), ↑↓ move the selection, Return enters a category, and Cmd+1..7 jumps from anywhere
+- **Actions view** — Tab fades the search bar into a two-zone view: a **Tools** grid of tiles (Scratchpad, Clipboard, Snippets) above a **Browse** list of categories (Window Commands, Shortcuts, Apps, Trast), everything with a ⌘-number badge. Tab steps through tools then browse rows and wraps back to search (Shift+Tab cycles backward), ↑↓ move the selection, ←→ step within the tool row, Return enters, and Cmd+1..7 jumps from anywhere
 - **Recent activity** — entering a category without typing shows recently used items from that category; searching inside a category scopes the search to it, the main search fuzzy-searches everything
 - **Cmd+,** opens Settings from anywhere in the launcher
 
@@ -108,7 +108,7 @@ Re-grant Accessibility one last time — after that, rebuilds keep the permissio
 
 ## Usage
 
-- **Launcher** — press the global hotkey (configurable in Settings → General); type to search everything, or Tab to cycle through the actions list and back to search; ↑↓ to navigate results or the actions list, Return to select, Esc steps back (category → actions list → close), Cmd+, to open Settings, Cmd+1..7 to jump to a category
+- **Launcher** — press the global hotkey (configurable in Settings → General); type to search everything, or Tab to cycle through the tools and categories and back to search; ↑↓ to navigate results or the actions view, ←→ to step within the tool row, Return to select, Esc steps back (category → actions view → close), Cmd+, to open Settings, Cmd+1..7 to jump to a tool or category
 - **Calculator** — type math, a unit conversion, or a currency amount in the launcher; Return copies the result
 - **Clipboard History** — press the clipboard hotkey (Settings → Window) to open the launcher on the Clipboard tab, or get there via the actions list / search; type to filter the full history and select to paste into the frontmost app
 - **Scratchpad** — press the scratchpad hotkey (Settings → Scratchpad) to open the launcher on the Scratchpad tab; press again to close

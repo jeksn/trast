@@ -115,7 +115,7 @@ struct LauncherView: View {
                     .background(Capsule().fill(Color.secondary.opacity(0.15)))
             }
             .buttonStyle(.plain)
-            .help("Show all categories (Tab)")
+            .help("Show tools (Tab)")
         }
         .padding(.horizontal, 16)
         .padding(.top, 14)
@@ -123,18 +123,46 @@ struct LauncherView: View {
     }
 
     private var actionsList: some View {
-        let categories = LauncherViewModel.Category.gridCases
-        return VStack(spacing: 10) {
-            ForEach(Array(categories.enumerated()), id: \.element) { index, category in
-                LauncherCategoryTile(
-                    category: category,
-                    number: index + 1,
-                    isSelected: index == viewModel.gridIndex
-                )
-                .onTapGesture { viewModel.selectCategory(category) }
+        let tools = LauncherViewModel.Category.toolCases
+        let browse = LauncherViewModel.Category.browseCases
+        return VStack(alignment: .leading, spacing: 10) {
+            if !tools.isEmpty {
+                actionsHeader("Tools")
+                LazyVGrid(
+                    columns: [GridItem(.adaptive(minimum: 96), spacing: 10)],
+                    spacing: 10
+                ) {
+                    ForEach(Array(tools.enumerated()), id: \.element) { index, category in
+                        LauncherToolTile(
+                            category: category,
+                            number: index + 1,
+                            isSelected: index == viewModel.gridIndex
+                        )
+                        .onTapGesture { viewModel.selectCategory(category) }
+                    }
+                }
+            }
+
+            actionsHeader("Browse")
+            VStack(spacing: 10) {
+                ForEach(Array(browse.enumerated()), id: \.element) { index, category in
+                    LauncherCategoryTile(
+                        category: category,
+                        number: tools.count + index + 1,
+                        isSelected: tools.count + index == viewModel.gridIndex
+                    )
+                    .onTapGesture { viewModel.selectCategory(category) }
+                }
             }
         }
         .padding(14)
+    }
+
+    private func actionsHeader(_ title: String) -> some View {
+        Text(title)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 2)
     }
 
     private var scratchpad: some View {
@@ -260,6 +288,42 @@ extension AnyTransition {
             active: BlurFadeModifier(progress: 1),
             identity: BlurFadeModifier(progress: 0)
         )
+    }
+}
+
+struct LauncherToolTile: View {
+    let category: LauncherViewModel.Category
+    let number: Int
+    let isSelected: Bool
+
+    var body: some View {
+        VStack(spacing: 6) {
+            Image(systemName: category.icon)
+                .font(.system(size: 20))
+                .frame(width: 24, height: 24)
+                .foregroundStyle(isSelected ? .primary : .secondary)
+            Text(category.label)
+                .font(.system(size: 11, weight: .medium))
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+            HStack(spacing: 2) {
+                Image(systemName: "command")
+                    .font(.system(size: 7, weight: .bold))
+                Text("\(number)")
+                    .font(.system(size: 9, weight: .bold))
+            }
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 3)
+            .background(Capsule().fill(Color.secondary.opacity(0.15)))
+        }
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(isSelected ? Color.accentColor.opacity(0.25) : Color.secondary.opacity(0.08))
+        )
+        .contentShape(RoundedRectangle(cornerRadius: 10))
     }
 }
 

@@ -259,8 +259,31 @@ final class LauncherViewModel: ObservableObject {
             return cases
         }
 
+        /// Interactive utilities rendered as tiles in the actions view —
+        /// the zone new tools (text transformer, AI chat) join. Tiles wrap
+        /// into a grid, so more tools never means a longer list.
+        static var toolCases: [Category] {
+            var cases: [Category] = []
+            if AppSettings.launcherClipboardTab { cases.append(.clipboard) }
+            if AppSettings.launcherSnippetsTab { cases.append(.snippets) }
+            cases.append(.scratchpad)
+            return cases
+        }
+
+        /// Searchable item lists rendered as rows in the actions view.
+        static var browseCases: [Category] {
+            [.commands, .shortcuts, .applications, .trast]
+        }
+
+        /// The full keyboard navigation order for the actions view:
+        /// tool tiles first, then browse rows. Cmd+number follows it.
         static var gridCases: [Category] {
-            visibleCases.filter { $0 != .all }
+            toolCases + browseCases
+        }
+
+        /// True when the category is rendered as a tool tile.
+        var isTool: Bool {
+            Self.toolCases.contains(self)
         }
     }
 
@@ -487,6 +510,20 @@ final class LauncherViewModel: ObservableObject {
         guard count > 0 else { return }
         withAnimation(Self.modeAnimation) {
             gridIndex = (gridIndex + delta + count) % count
+        }
+    }
+
+    /// Left/right arrows: step within the tool tile row only (the row is
+    /// horizontal, so sideways keys feel natural there). Clamps at the row
+    /// edges instead of leaving the zone — browse rows are reached with
+    /// up/down or Tab.
+    func moveToolSelection(_ delta: Int) {
+        let tools = Category.toolCases
+        guard !tools.isEmpty, gridIndex < tools.count else { return }
+        let next = min(max(gridIndex + delta, 0), tools.count - 1)
+        guard next != gridIndex else { return }
+        withAnimation(Self.modeAnimation) {
+            gridIndex = next
         }
     }
 

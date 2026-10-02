@@ -353,6 +353,8 @@ final class LauncherController: NSObject, NSWindowDelegate {
                     switch event.keyCode {
                     case 125: self.viewModel.moveGridSelection(1)
                     case 126: self.viewModel.moveGridSelection(-1)
+                    case 123: self.viewModel.moveToolSelection(-1)
+                    case 124: self.viewModel.moveToolSelection(1)
                     default: break
                     }
                     return nil
