@@ -10,6 +10,8 @@ final class HotkeyManager {
     static let nextWindow = KeyboardShortcuts.Name("nextWindow")
     static let openClipboard = KeyboardShortcuts.Name("openClipboard")
     static let openScratchpad = KeyboardShortcuts.Name("openScratchpad")
+    static let openTextTransformer = KeyboardShortcuts.Name("openTextTransformer")
+    static let openAIChat = KeyboardShortcuts.Name("openAIChat")
 
     private var registeredCommandIDs = Set<UUID>()
     private var registeredAppShortcutIDs = Set<UUID>()
@@ -36,6 +38,12 @@ final class HotkeyManager {
         }
         KeyboardShortcuts.onKeyUp(for: Self.openScratchpad) {
             LauncherController.shared.showScratchpad()
+        }
+        KeyboardShortcuts.onKeyUp(for: Self.openTextTransformer) {
+            LauncherController.shared.showTextTransformer()
+        }
+        KeyboardShortcuts.onKeyUp(for: Self.openAIChat) {
+            LauncherController.shared.showAIChat()
         }
         for action in WindowAction.all {
             register(action)

@@ -6,7 +6,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         ConfigMigration.migrateIfNeeded()
         AppScanner.refresh()
         AppScanner.startWatching()
-        ExchangeRateStore.shared.currentRates()
+        _ = ExchangeRateStore.shared.currentRates()
         ClipboardMonitor.shared.start()
         SnippetExpander.shared.start()
         HyperkeyEngine.shared.start()

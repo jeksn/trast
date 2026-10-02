@@ -22,6 +22,9 @@ struct LauncherView: View {
             } else if viewModel.selectedCategory == .textTransformer {
                 transformerTool
                     .transition(.blurFade)
+            } else if viewModel.selectedCategory == .aiChat {
+                aiChatTool
+                    .transition(.blurFade)
             } else if viewModel.selectedCategory == .scratchpad {
                 scratchpad
                     .transition(.blurFade)
@@ -161,14 +164,9 @@ struct LauncherView: View {
                         LauncherToolTile(
                             category: category,
                             number: index + 1,
-                            isSelected: index == viewModel.gridIndex,
-                            isPlaceholder: category.isPlaceholder
+                            isSelected: index == viewModel.gridIndex
                         )
-                        .onTapGesture {
-                            if !category.isPlaceholder {
-                                viewModel.selectCategory(category)
-                            }
-                        }
+                        .onTapGesture { viewModel.selectCategory(category) }
                     }
                 }
             }
@@ -334,6 +332,24 @@ struct LauncherView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
         }
+    }
+
+    private var aiChatTool: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "sparkles")
+                .font(.system(size: 20))
+                .foregroundStyle(.secondary)
+            Text("AI Chat is coming soon")
+                .font(.system(size: 14, weight: .medium))
+            Text(AppSettings.hasAIAPIKey
+                 ? "Your API key is saved in Settings → Tools — the chat arrives in a future release."
+                 : "Add your provider and API key in Settings → Tools, and the chat arrives in a future release.")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+                .multilineTextAlignment(.center)
+        }
+        .padding(24)
+        .frame(maxWidth: .infinity)
     }
 
     private var transformerTool: some View {
@@ -518,7 +534,6 @@ struct LauncherToolTile: View {
     let category: LauncherViewModel.Category
     let number: Int
     let isSelected: Bool
-    var isPlaceholder = false
 
     @State private var isHovered = false
 
@@ -535,7 +550,7 @@ struct LauncherToolTile: View {
             HStack(spacing: 2) {
                 Image(systemName: "command")
                     .font(.system(size: 7, weight: .bold))
-                Text(isPlaceholder ? "soon" : "\(number)")
+                Text("\(number)")
                     .font(.system(size: 9, weight: .bold))
             }
             .foregroundStyle(.secondary)
@@ -545,19 +560,18 @@ struct LauncherToolTile: View {
         }
         .padding(.vertical, 12)
         .frame(maxWidth: .infinity)
-        .opacity(isPlaceholder ? 0.45 : 1)
         .background(
             RoundedRectangle(cornerRadius: 10)
                 .fill(tileBackground)
         )
         .contentShape(RoundedRectangle(cornerRadius: 10))
         .onHover { isHovered = $0 }
-        .help(isPlaceholder ? "Coming soon" : category.label)
+        .help(category.label)
     }
 
     private var tileBackground: Color {
         if isSelected { return Color.accentColor.opacity(0.25) }
-        if isHovered && !isPlaceholder { return Color.accentColor.opacity(0.10) }
+        if isHovered { return Color.accentColor.opacity(0.10) }
         return Color.secondary.opacity(0.08)
     }
 }

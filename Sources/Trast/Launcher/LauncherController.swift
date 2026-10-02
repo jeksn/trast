@@ -137,6 +137,56 @@ final class LauncherController: NSObject, NSWindowDelegate {
         panel?.orderOut(nil)
     }
 
+    /// Entering the transformer captures the selection: Accessibility first
+    /// (works while the panel is open), pasteboard borrow as fallback — the
+    /// panel is hidden for the synthetic Cmd+C, since posted keyboard events
+    /// go to the app owning the key window, which is Trast while the panel
+    /// is up. The panel is brought back when the fallback completes.
+    func enterTextTransformer() {
+        viewModel.beginTextTransformerCapture()
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self else { return }
+            let axText = TextTransformerController.shared.axSelectedText()
+            if let axText, !axText.isEmpty {
+                DispatchQueue.main.async {
+                    self.finishTransformerCapture(axText)
+                }
+                return
+            }
+            DispatchQueue.main.async {
+                self.panel?.orderOut(nil)
+            }
+            TextTransformerController.shared.captureViaPasteboard { [weak self] text in
+                DispatchQueue.main.async {
+                    self?.panel?.makeKeyAndOrderFront(nil)
+                    self?.finishTransformerCapture(text)
+                }
+            }
+        }
+    }
+
+    private func finishTransformerCapture(_ text: String?) {
+        viewModel.finishTextTransformerCapture(text)
+    }
+
+    func showTextTransformer() {
+        if panel?.isVisible == true, viewModel.selectedCategory == .textTransformer, !viewModel.showsActions {
+            close()
+        } else {
+            show()
+            viewModel.selectCategory(.textTransformer)
+        }
+    }
+
+    func showAIChat() {
+        if panel?.isVisible == true, viewModel.selectedCategory == .aiChat, !viewModel.showsActions {
+            close()
+        } else {
+            show()
+            viewModel.selectCategory(.aiChat)
+        }
+    }
+
     /// Applies the highlighted transformation to the captured selection:
     /// closes the panel first (the target app stays frontmost — the panel
     /// is non-activating), then replaces the selection and shows feedback.
@@ -383,6 +433,21 @@ final class LauncherController: NSObject, NSWindowDelegate {
                 // equivalent of the right-click context menu.
                 if event.keyCode == 40 {
                     self.showOptionsForSelectedItem()
+                    return nil
+                }
+            }
+
+            // AI Chat placeholder view: Esc and Tab navigate, everything else
+            // is swallowed (no text field to receive typing yet).
+            if self.viewModel.selectedCategory == .aiChat && !self.viewModel.showsActions {
+                switch event.keyCode {
+                case 53:
+                    self.handleEscape()
+                    return nil
+                case 48:
+                    self.viewModel.handleTab(shift: event.modifierFlags.contains(.shift))
+                    return nil
+                default:
                     return nil
                 }
             }

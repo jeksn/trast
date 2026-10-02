@@ -263,15 +263,6 @@ final class LauncherViewModel: ObservableObject {
             }
         }
 
-        /// Placeholder tools are shown in the actions view but not built yet —
-        /// selecting them (keyboard, Cmd+number, click) is a no-op.
-        var isPlaceholder: Bool {
-            switch self {
-            case .aiChat: return true
-            default: return false
-            }
-        }
-
         static var visibleCases: [Category] {
             var cases: [Category] = [.all, .commands, .shortcuts, .applications]
             if AppSettings.launcherClipboardTab { cases.append(.clipboard) }
@@ -282,9 +273,9 @@ final class LauncherViewModel: ObservableObject {
         }
 
         /// Interactive utilities rendered as tiles in the actions view —
-        /// the zone new tools join. Tiles wrap into a grid, so more tools
-        /// never means a longer list. Placeholder tools always show so the
-        /// direction of the app is visible.
+        /// the zone tools live in. Tiles wrap into a grid, so more tools
+        /// never means a longer list. AI Chat shows a coming-soon view until
+        /// the chat is built.
         static var toolCases: [Category] {
             var cases: [Category] = []
             if AppSettings.launcherClipboardTab { cases.append(.clipboard) }
@@ -440,20 +431,22 @@ final class LauncherViewModel: ObservableObject {
 
     // MARK: - Text Transformer
 
-    /// Entering the tool captures what's selected in the frontmost app.
-    /// The completion is dropped if the user left the tool before it lands.
-    func enterTextTransformer() {
+    /// Entering the tool clears state and starts capturing the frontmost
+    /// app's selection (orchestrated by `LauncherController`, which owns the
+    /// panel — the pasteboard fallback needs it hidden).
+    func beginTextTransformerCapture() {
         transformerState = .capturing
         transformerText = ""
         transformSelectedIndex = 0
-        TextTransformerController.shared.captureSelection { [weak self] text in
-            guard let self, self.selectedCategory == .textTransformer else { return }
-            if let text, !text.isEmpty {
-                transformerText = text
-                transformerState = .ready
-            } else {
-                transformerState = .noSelection
-            }
+    }
+
+    func finishTextTransformerCapture(_ text: String?) {
+        guard selectedCategory == .textTransformer else { return }
+        if let text, !text.isEmpty {
+            transformerText = text
+            transformerState = .ready
+        } else {
+            transformerState = .noSelection
         }
     }
 
@@ -750,7 +743,6 @@ final class LauncherViewModel: ObservableObject {
     }
 
     func selectCategory(_ category: Category) {
-        guard !category.isPlaceholder else { return }
         selectedCategory = category
         selectedIndex = 0
         query = ""
@@ -761,7 +753,7 @@ final class LauncherViewModel: ObservableObject {
             notesSelectedIndex = 0
         }
         if category == .textTransformer {
-            enterTextTransformer()
+            LauncherController.shared.enterTextTransformer()
         }
     }
 

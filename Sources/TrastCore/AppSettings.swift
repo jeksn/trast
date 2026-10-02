@@ -21,6 +21,8 @@ public enum AppSettings {
     public static let scratchpadTextKey = "scratchpadText"
     public static let baseCurrencyKey = "baseCurrency"
     public static let preferredUnitsKey = "preferredUnits"
+    public static let aiProviderKey = "aiProvider"
+    public static let aiAPIKeyKey = "aiAPIKey"
 
     public static var gap: Double {
         UserDefaults.standard.double(forKey: gapKey)
@@ -69,5 +71,16 @@ public enum AppSettings {
     /// convert into.
     public static var preferredUnits: String {
         UserDefaults.standard.string(forKey: preferredUnitsKey) ?? "metric"
+    }
+
+    /// BYOK provider id for the (upcoming) AI Chat tool ("openai",
+    /// "anthropic", "google", "mistral", "openrouter").
+    public static var aiProvider: String {
+        UserDefaults.standard.string(forKey: aiProviderKey) ?? "openai"
+    }
+
+    /// True when an AI Chat API key has been entered in Settings → Tools.
+    public static var hasAIAPIKey: Bool {
+        !(UserDefaults.standard.string(forKey: aiAPIKeyKey) ?? "").isEmpty
     }
 }
