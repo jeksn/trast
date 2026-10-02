@@ -28,6 +28,12 @@ final class LauncherController: NSObject, NSWindowDelegate {
         let category: LauncherViewModel.Category
         let sectionTitles: [String]
         let rowCount: Int
+        // Tool-internal modes swap views of very different heights under the
+        // same category (transformer capturing → ready; scratchpad editor →
+        // notes list) — without them in the signature the panel keeps the
+        // height measured for the previous mode and clips the new content.
+        let transformerState: LauncherViewModel.TransformerState
+        let scratchpadMode: LauncherViewModel.ScratchpadMode
     }
 
     override private init() {
@@ -361,7 +367,9 @@ final class LauncherController: NSObject, NSWindowDelegate {
             showsActions: viewModel.showsActions,
             category: viewModel.selectedCategory,
             sectionTitles: viewModel.sections.map(\.title),
-            rowCount: viewModel.filtered.count
+            rowCount: viewModel.filtered.count,
+            transformerState: viewModel.transformerState,
+            scratchpadMode: viewModel.scratchpadMode
         )
         // The content height can't have changed (selection move, hover);
         // skip the fittingSize measurement, which forces a full layout pass.
