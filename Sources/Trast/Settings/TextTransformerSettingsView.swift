@@ -5,6 +5,14 @@ struct TextTransformerSettingsView: View {
     @State private var order: [String] = AppSettings.transformOrder
     @State private var disabled: Set<String> = Set(AppSettings.disabledTransforms)
 
+    /// Drag-to-reorder state (playlist style): the dragged row follows the
+    /// cursor and rows swap once the drag crosses half a row's height.
+    @State private var draggingRaw: String?
+    @State private var dragOffset: CGFloat = 0
+
+    private let rowHeight: CGFloat = 36
+    private let reorderAnimation = Animation.spring(response: 0.25, dampingFraction: 1)
+
     var body: some View {
         Form {
             Section {
@@ -16,49 +24,67 @@ struct TextTransformerSettingsView: View {
             }
 
             Section {
-                ForEach(Array(order.enumerated()), id: \.element) { index, raw in
-                    transformRow(raw: raw, index: index)
-                }
-                .onMove { source, destination in
-                    order.move(fromOffsets: IndexSet(source), toOffset: destination)
-                    AppSettings.saveTransformOrder(order)
+                ForEach(Array(order.enumerated()), id: \.element) { _, raw in
+                    transformRow(raw: raw)
+                        .offset(y: draggingRaw == raw ? dragOffset : 0)
+                        .zIndex(draggingRaw == raw ? 1 : 0)
                 }
             } header: {
                 Text("Transformations")
             } footer: {
-                Text("Drag to reorder (or use the arrows) — the tool shows the transformations in this order. Disable the ones you never use to keep the list short.")
+                Text("Drag the handle to reorder — the tool shows the transformations in this order. Disable the ones you never use to keep the list short.")
             }
         }
         .formStyle(.grouped)
     }
 
-    private func transformRow(raw: String, index: Int) -> some View {
+    private func transformRow(raw: String) -> some View {
         let name = TextTransform(rawValue: raw)?.name ?? raw
-        return HStack {
+        return HStack(spacing: 8) {
+            Image(systemName: "line.3.horizontal")
+                .foregroundStyle(.secondary)
+                .frame(width: 24, height: 24)
+                .contentShape(Rectangle())
+                .gesture(
+                    DragGesture()
+                        .onChanged { value in
+                            handleDrag(raw: raw, translation: value.translation.height)
+                        }
+                        .onEnded { _ in
+                            withAnimation(reorderAnimation) {
+                                draggingRaw = nil
+                                dragOffset = 0
+                            }
+                            AppSettings.saveTransformOrder(order)
+                        }
+                )
             Toggle(name, isOn: enabledBinding(for: raw))
-            Spacer()
-            HStack(spacing: 0) {
-                Button {
-                    move(index, -1)
-                } label: {
-                    Image(systemName: "chevron.up")
-                        .frame(width: 20, height: 18)
-                }
-                .buttonStyle(.plain)
-                .disabled(index == 0)
-                .help("Move up")
+        }
+        .frame(height: rowHeight)
+    }
 
-                Button {
-                    move(index, 1)
-                } label: {
-                    Image(systemName: "chevron.down")
-                        .frame(width: 20, height: 18)
-                }
-                .buttonStyle(.plain)
-                .disabled(index == order.count - 1)
-                .help("Move down")
+    /// Keeps the dragged row under the cursor and swaps it with the neighbor
+    /// once the drag passes half a row; the layout jump from the swap is
+    /// folded back into the offset so the row never snaps.
+    private func handleDrag(raw: String, translation: CGFloat) {
+        if draggingRaw != raw {
+            draggingRaw = raw
+            dragOffset = translation
+            return
+        }
+        dragOffset = translation
+        guard let index = order.firstIndex(of: raw) else { return }
+        let half = rowHeight / 2
+        if translation < -half, index > 0 {
+            withAnimation(reorderAnimation) {
+                order.swapAt(index, index - 1)
             }
-            .foregroundStyle(.secondary)
+            dragOffset += rowHeight
+        } else if translation > half, index < order.count - 1 {
+            withAnimation(reorderAnimation) {
+                order.swapAt(index, index + 1)
+            }
+            dragOffset -= rowHeight
         }
     }
 
@@ -74,12 +100,5 @@ struct TextTransformerSettingsView: View {
                 AppSettings.saveDisabledTransforms(Array(disabled))
             }
         )
-    }
-
-    private func move(_ index: Int, _ delta: Int) {
-        let target = index + delta
-        guard target >= 0, target < order.count else { return }
-        order.swapAt(index, target)
-        AppSettings.saveTransformOrder(order)
     }
 }
