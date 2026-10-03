@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.11.0 — Unified launcher, configurable tools (Oct 3, 2026)
+
+- **One launcher surface**: the old Tab action mode is gone — ↓, Tab, or the list button opens the unified view with every tool as a compact row (⌘-numbered, so Cmd+1..5 jumps straight to a tool), then your favorites, then the last things you used. A new "On open" setting (General) picks between **Compact** (bare search bar) and **Full** (the unified view) whenever the launcher opens
+- **Every tool is searchable**: typing finds Text Transformer and AI Chat alongside everything else
+- **Esc steps back one level at a time**: typed search → main view → close
+- **Text Transformer settings**: its own tab listing every transformation with enable/disable toggles and playlist-style drag-to-reorder — the tool shows exactly your list, in your order
+- **AI Chat settings**: its own tab with the hotkey, provider picker, and API key (stored locally, ready for the chat interface in a future release)
+- **Fixes**: favorited rows (which travel between the favorites and search sections) stopped painting their selection/hover highlight — rows now derive highlight state directly from the view model; a typed search no longer needs two Esc presses to go back
+
 ## v0.10.0 — Launcher tools: Text Transformer, notes, favorites (Sep 30, 2026)
 
 - Actions view rebuilt as **Tools + Browse**: interactive tools are tiles in a wrapping grid (Scratchpad, Clipboard, Snippets, Text Transformer, AI Chat) above a compact list of categories (Window Commands, Shortcuts, Apps, Trast) — new tools no longer lengthen a list, and arrow keys now follow the layout instead of a flat wrap
