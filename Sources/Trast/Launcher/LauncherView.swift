@@ -724,6 +724,7 @@ struct LauncherRowView: View {
                     .frame(width: 22, height: 22)
             }
             highlightedTitle
+                .font(toolNumber != nil ? .system(size: 13, weight: .medium) : .body)
                 .lineLimit(1)
             if let subtitle = item.subtitle {
                 Text(subtitle)
@@ -732,6 +733,20 @@ struct LauncherRowView: View {
                     .lineLimit(1)
             }
             Spacer()
+            if let toolNumber {
+                // Tools render compact in the recents view, with the same
+                // ⌘-number badge the actions grid uses.
+                HStack(spacing: 2) {
+                    Image(systemName: "command")
+                        .font(.system(size: 7, weight: .bold))
+                    Text("\(toolNumber)")
+                        .font(.system(size: 9, weight: .bold))
+                }
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 3)
+                .background(Capsule().fill(Color.secondary.opacity(0.15)))
+            }
             if isFavorite {
                 Image(systemName: "star.fill")
                     .font(.system(size: 10))
@@ -744,7 +759,7 @@ struct LauncherRowView: View {
             }
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 9)
+        .padding(.vertical, toolNumber != nil ? 6 : 9)
         .background(
             RoundedRectangle(cornerRadius: 6)
                 .fill(rowBackground)
@@ -758,6 +773,12 @@ struct LauncherRowView: View {
                 }
             }
         }
+    }
+
+    /// The actions-grid number for tool rows in the recents view.
+    private var toolNumber: Int? {
+        if case .toolEntry(_, let number) = item { return number }
+        return nil
     }
 
     private var rowBackground: Color {

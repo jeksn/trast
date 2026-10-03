@@ -310,6 +310,8 @@ final class LauncherController: NSObject, NSWindowDelegate {
             HUD.show("Copied")
         case .categoryEntry(let category):
             viewModel.selectCategory(category)
+        case .toolEntry(let category, _):
+            viewModel.selectCategory(category)
         }
     }
 

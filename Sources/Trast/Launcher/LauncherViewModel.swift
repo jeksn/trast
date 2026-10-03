@@ -59,6 +59,7 @@ enum LauncherItem: Identifiable {
     case clipboardEntry(ClipboardItem)
     case snippetEntry(Snippet)
     case categoryEntry(LauncherViewModel.Category)
+    case toolEntry(LauncherViewModel.Category, number: Int)
     case calculatorResult(title: String, subtitle: String, valueToCopy: String)
 
     var id: String {
@@ -73,6 +74,8 @@ enum LauncherItem: Identifiable {
             return "snippet.\(snippet.id.uuidString)"
         case .categoryEntry(let category):
             return "category.\(category.rawValue)"
+        case .toolEntry(let category, _):
+            return "tool.\(category.rawValue)"
         case .calculatorResult:
             return "calculator"
         }
@@ -94,6 +97,8 @@ enum LauncherItem: Identifiable {
             return snippet.name
         case .categoryEntry(let category):
             return category.label
+        case .toolEntry(let category, _):
+            return category.label
         case .calculatorResult(let title, _, _):
             return title
         }
@@ -103,7 +108,7 @@ enum LauncherItem: Identifiable {
         switch self {
         case .command(_, let name), .appShortcut(_, let name), .installedApp(_, let name):
             return name
-        case .launcherAction, .clipboardEntry, .snippetEntry, .categoryEntry, .calculatorResult:
+        case .launcherAction, .clipboardEntry, .snippetEntry, .categoryEntry, .toolEntry, .calculatorResult:
             return nil
         }
     }
@@ -132,6 +137,8 @@ enum LauncherItem: Identifiable {
             return "text.append"
         case .categoryEntry(let category):
             return category.icon
+        case .toolEntry(let category, _):
+            return category.icon
         case .calculatorResult:
             return "plus.forwardslash.minus"
         }
@@ -143,7 +150,7 @@ enum LauncherItem: Identifiable {
             return app.icon
         case .clipboardEntry(let item):
             return LauncherIconCache.clipboardImage(for: item)
-        case .command, .appShortcut, .launcherAction, .snippetEntry, .categoryEntry, .calculatorResult:
+        case .command, .appShortcut, .launcherAction, .snippetEntry, .categoryEntry, .toolEntry, .calculatorResult:
             return nil
         }
     }
@@ -173,6 +180,8 @@ enum LauncherItem: Identifiable {
             return "Snippets"
         case .categoryEntry:
             return "Browse"
+        case .toolEntry:
+            return "Tools"
         case .calculatorResult:
             return "Calculator"
         }
@@ -268,6 +277,8 @@ final class LauncherViewModel: ObservableObject {
             if AppSettings.launcherClipboardTab { cases.append(.clipboard) }
             if AppSettings.launcherSnippetsTab { cases.append(.snippets) }
             cases.append(.scratchpad)
+            cases.append(.textTransformer)
+            cases.append(.aiChat)
             cases.append(.trast)
             return cases
         }
@@ -470,7 +481,7 @@ final class LauncherViewModel: ObservableObject {
 
     func isFavoritable(_ item: LauncherItem) -> Bool {
         switch item {
-        case .calculatorResult, .clipboardEntry, .categoryEntry:
+        case .calculatorResult, .clipboardEntry, .categoryEntry, .toolEntry:
             return false
         default:
             return true
@@ -572,24 +583,37 @@ final class LauncherViewModel: ObservableObject {
         }
     }
 
-    /// Sections for the recent-activity view: a Favorites section first,
-    /// then the remaining items grouped as usual.
+    /// Sections for the recent-activity view: tools first (the unified
+    /// entry to every tool — same order as the actions grid), then
+    /// favorites, then the remaining items grouped as usual.
     private static func makeRecentSections(from items: [LauncherItem], favorites: Set<String>) -> [LauncherSection] {
-        let favoriteItems = items.filter { favorites.contains($0.id) }
-        let restItems = items.filter { !favorites.contains($0.id) }
+        func isTool(_ item: LauncherItem) -> Bool {
+            if case .toolEntry = item { return true }
+            return false
+        }
+        let toolItems = items.filter(isTool)
+        let restItems = items.filter { !isTool($0) }
+        let favoriteItems = restItems.filter { favorites.contains($0.id) }
+        let recentItems = restItems.filter { !favorites.contains($0.id) }
         var result: [LauncherSection] = []
+        if !toolItems.isEmpty {
+            result.append(LauncherSection(title: "Tools", items: toolItems))
+        }
         if !favoriteItems.isEmpty {
             result.append(LauncherSection(title: "Favorites", items: favoriteItems))
         }
-        result.append(contentsOf: makeSections(from: restItems))
+        result.append(contentsOf: makeSections(from: recentItems))
         return result
     }
 
-    /// The ↓ view: everything you used recently, favorites first (a favorite
-    /// always shows, even if it has no usage), then up to ten recently used
-    /// items. Category entries and calculator results are excluded — the
-    /// list is what you did, not what you could browse.
+    /// The ↓ view: every tool as a compact row, then favorites (always
+    /// shown, even with no usage), then up to ten recently used items.
+    /// Category entries and calculator results are excluded — the list is
+    /// what you did, not what you could browse.
     private func recentActivityItems() -> [LauncherItem] {
+        let toolEntries = Category.toolCases.enumerated().map { index, category in
+            LauncherItem.toolEntry(category, number: index + 1)
+        }
         let candidates = index
             .filter { includesInCategory($0.item) }
             .map(\.item.item)
@@ -600,7 +624,7 @@ final class LauncherViewModel: ObservableObject {
         let sorted = sortedByUsage(candidates)
         let favoriteItems = sorted.filter { favorites.contains($0.id) }
         let recentItems = sorted.filter { !favorites.contains($0.id) }.prefix(10)
-        return favoriteItems + Array(recentItems)
+        return toolEntries + favoriteItems + Array(recentItems)
     }
 
     private func sortedByUsage(_ items: [LauncherItem]) -> [LauncherItem] {
