@@ -24,7 +24,7 @@ Press the launcher hotkey (Settings → General to record it) and type. Results 
 - **Scratchpad** — a quick-notes pad that persists across opens and relaunches: ⌘N (or the New button) starts a fresh note, ⌘P lists all notes as one-line excerpts with their last-edited time, Return opens one. The editor footer has Copy and Delete. A dedicated hotkey (Settings → Scratchpad) opens the launcher straight on it
 - **Tools view** — ↓, Tab, or the list button next to the search bar opens the unified view: every tool as a compact row (Scratchpad, Clipboard, Snippets, Text Transformer, AI Chat — with ⌘-number badges, so Cmd+1..5 opens them from anywhere), then your favorites, then the last things you used. The "On open" setting (Settings → General, Compact or Full) shows it immediately whenever the launcher opens
 - **Text Transformer** — select text in any app, open the tool (its own hotkey in Settings → Tools, or from the tools view) and pick a case transformation with a live preview of the result (UPPERCASE, lowercase, Title Case, Sentence case, camelCase, PascalCase, snake_case, kebab-case, CONSTANT_CASE, tOGGLE cASE); Return replaces the selection in the original app. Your clipboard is borrowed for a moment and restored, and nothing lands in clipboard history
-- **AI Chat** — a minimal BYOK chat: pick a provider (OpenAI, Anthropic, Google, Mistral, OpenRouter), store the API key in your Keychain, and chat from the launcher. No sidebar — ⌘P (or the clock button) lists previous discussions, ⌘N starts a new one. Hover an AI reply for a copy button, or copy the whole discussion from the header. Requests go straight from your Mac to the provider
+- **AI Chat** — a minimal BYOK chat: pick a provider (OpenAI, Anthropic, Google, Mistral, OpenRouter), store the API key locally on your Mac, and chat from the launcher. No sidebar — ⌘P (or the clock button) lists previous discussions, ⌘N starts a new one. Hover an AI reply for a copy button, or copy the whole discussion from the header. Requests go straight from your Mac to the provider
 - **Favorites & recent activity** — press ↓ with an empty search for the unified view: every tool as a compact row first, then your favorites, then the last things you used. Right-click any result or press ⌘K on the highlighted row to favorite it
 - **Recent activity** — entering a category without typing shows recently used items from that category; searching inside a category scopes the search to it, the main search fuzzy-searches everything
 - **Cmd+,** opens Settings from anywhere in the launcher
@@ -130,7 +130,7 @@ Re-grant Accessibility one last time — after that, rebuilds keep the permissio
 | **Snippets** | Create text snippets with keywords and template variables; toggle individual snippets on/off; grouped by enabled/disabled |
 | **Clipboard** | Monitor toggle, history size, auto-clear interval, clear history |
 | **Text Transformer** | Open hotkey; the transformation list — reorder and enable/disable each one |
-| **AI Chat** | Open hotkey; provider, model, and API key (Keychain); delete all discussions |
+| **AI Chat** | Open hotkey; provider, model, and API key; delete all discussions |
 | **Scratchpad** | Scratchpad hotkey, delete all notes |
 
 ### URL scheme
