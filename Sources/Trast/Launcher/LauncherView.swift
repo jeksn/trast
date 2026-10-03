@@ -51,6 +51,7 @@ struct LauncherView: View {
                                         LauncherRowView(
                                             item: item,
                                             isSelected: item.id == selectedID,
+                                            isHovered: viewModel.hoveredID == item.id,
                                             query: viewModel.query,
                                             hotkeyDisplay: viewModel.hotkeyDisplay(for: item),
                                             canFavorite: viewModel.isFavoritable(item),
@@ -58,6 +59,9 @@ struct LauncherView: View {
                                             onToggleFavorite: { viewModel.toggleFavorite(item.id) }
                                         )
                                             .id(item.id)
+                                            .onHover { hovering in
+                                                viewModel.setHovered(item.id, hovering: hovering)
+                                            }
                                             .onTapGesture { onSelect(item) }
                                     }
                                 }
@@ -361,9 +365,13 @@ struct LauncherView: View {
                                     TransformRowView(
                                         transform: transform,
                                         preview: singleLinePreview(transform.apply(to: viewModel.transformerText)),
-                                        isSelected: index == viewModel.transformSelectedIndex
+                                        isSelected: index == viewModel.transformSelectedIndex,
+                                        isHovered: viewModel.hoveredID == transform.id
                                     )
                                     .id(transform.id)
+                                    .onHover { hovering in
+                                        viewModel.setHovered(transform.id, hovering: hovering)
+                                    }
                                     .onTapGesture {
                                         LauncherController.shared.applySelectedTransform()
                                     }
@@ -410,9 +418,13 @@ struct LauncherView: View {
                         ForEach(Array(notesStore.notes.enumerated()), id: \.element.id) { index, note in
                             NoteRowView(
                                 note: note,
-                                isSelected: index == viewModel.notesSelectedIndex
+                                isSelected: index == viewModel.notesSelectedIndex,
+                                isHovered: viewModel.hoveredID == note.id.uuidString
                             )
                             .id(note.id)
+                            .onHover { hovering in
+                                viewModel.setHovered(note.id.uuidString, hovering: hovering)
+                            }
                             .onTapGesture { viewModel.openNote(note.id) }
                         }
                     }
@@ -492,8 +504,7 @@ struct TransformRowView: View {
     let transform: TextTransform
     let preview: String
     let isSelected: Bool
-
-    @State private var isHovered = false
+    var isHovered = false
 
     var body: some View {
         HStack(spacing: 12) {
@@ -517,7 +528,6 @@ struct TransformRowView: View {
                 .fill(rowBackground)
         )
         .padding(.horizontal, 6)
-        .onHover { isHovered = $0 }
     }
 
     private var rowBackground: Color {
@@ -530,8 +540,7 @@ struct TransformRowView: View {
 struct NoteRowView: View {
     let note: Note
     let isSelected: Bool
-
-    @State private var isHovered = false
+    var isHovered = false
 
     var body: some View {
         HStack(spacing: 12) {
@@ -556,7 +565,6 @@ struct NoteRowView: View {
                 .fill(rowBackground)
         )
         .padding(.horizontal, 6)
-        .onHover { isHovered = $0 }
     }
 
     private var rowBackground: Color {
@@ -569,13 +577,12 @@ struct NoteRowView: View {
 struct LauncherRowView: View {
     let item: LauncherItem
     let isSelected: Bool
+    var isHovered = false
     let query: String
     let hotkeyDisplay: String?
     var canFavorite = false
     var isFavorite = false
     var onToggleFavorite: (() -> Void)? = nil
-
-    @State private var isHovered = false
 
     var body: some View {
         HStack(spacing: 12) {
@@ -631,7 +638,6 @@ struct LauncherRowView: View {
                 .fill(rowBackground)
         )
         .padding(.horizontal, 6)
-        .onHover { isHovered = $0 }
         .contextMenu {
             if canFavorite, let onToggleFavorite {
                 Button(isFavorite ? "Remove from Favorites" : "Add to Favorites") {

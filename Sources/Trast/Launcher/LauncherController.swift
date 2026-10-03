@@ -214,6 +214,10 @@ final class LauncherController: NSObject, NSWindowDelegate {
         if viewModel.selectedCategory != .all {
             // From a tool or category, back to the All search.
             viewModel.selectCategory(.all)
+        } else if !viewModel.query.trimmingCharacters(in: .whitespaces).isEmpty {
+            // A typed search: clear it back to the main (empty or tools)
+            // view — not straight out of the launcher.
+            viewModel.query = ""
         } else if viewModel.showsRecentActivity {
             // Collapse the tools/recents view back to the empty search bar.
             viewModel.dismissRecentActivity()

@@ -317,6 +317,10 @@ final class LauncherViewModel: ObservableObject {
     @Published var selectedIndex = 0
     @Published var focusToken = UUID()
     @Published var showsRecentActivity = false
+    /// The hovered result row, tracked here (not per-row @State): rows are
+    /// reused across section changes under the same identity, where @State
+    /// can survive a missed hover-exit and stay stuck highlighted.
+    @Published var hoveredID: String?
     @Published var scratchpadMode: ScratchpadMode = .editor
     @Published var notesSelectedIndex = 0
 
@@ -486,6 +490,7 @@ final class LauncherViewModel: ObservableObject {
     /// in display order — the selection walks what's on screen, so no
     /// visible row can be skipped or visited out of order.
     private func updateResults() {
+        hoveredID = nil
         let trimmed = query.trimmingCharacters(in: .whitespaces)
 
         if trimmed.isEmpty {
@@ -660,6 +665,14 @@ final class LauncherViewModel: ObservableObject {
         }
         if category == .textTransformer {
             LauncherController.shared.enterTextTransformer()
+        }
+    }
+
+    func setHovered(_ id: String, hovering: Bool) {
+        if hovering {
+            hoveredID = id
+        } else if hoveredID == id {
+            hoveredID = nil
         }
     }
 
