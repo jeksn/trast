@@ -24,7 +24,6 @@ final class LauncherController: NSObject, NSWindowDelegate {
     /// Everything that determines the panel's content height. Selection and
     /// hover changes don't affect it, so they don't need a layout pass.
     private struct LayoutSignature: Equatable {
-        let showsActions: Bool
         let category: LauncherViewModel.Category
         let sectionTitles: [String]
         let rowCount: Int
@@ -67,10 +66,16 @@ final class LauncherController: NSObject, NSWindowDelegate {
         let panel = ensurePanel()
         resizePanelToFit()
         panel.makeKeyAndOrderFront(nil)
+
+        // "On open" setting: land on the unified tools/recents view instead
+        // of a bare search bar.
+        if AppSettings.launcherOpensToTools {
+            viewModel.showRecentActivity()
+        }
     }
 
     func showClipboard() {
-        if panel?.isVisible == true, viewModel.selectedCategory == .clipboard, !viewModel.showsActions {
+        if panel?.isVisible == true, viewModel.selectedCategory == .clipboard {
             close()
         } else {
             show()
@@ -81,7 +86,7 @@ final class LauncherController: NSObject, NSWindowDelegate {
     }
 
     func showScratchpad() {
-        if panel?.isVisible == true, viewModel.selectedCategory == .scratchpad, !viewModel.showsActions {
+        if panel?.isVisible == true, viewModel.selectedCategory == .scratchpad {
             close()
         } else {
             show()
@@ -176,7 +181,7 @@ final class LauncherController: NSObject, NSWindowDelegate {
     }
 
     func showTextTransformer() {
-        if panel?.isVisible == true, viewModel.selectedCategory == .textTransformer, !viewModel.showsActions {
+        if panel?.isVisible == true, viewModel.selectedCategory == .textTransformer {
             close()
         } else {
             show()
@@ -185,7 +190,7 @@ final class LauncherController: NSObject, NSWindowDelegate {
     }
 
     func showAIChat() {
-        if panel?.isVisible == true, viewModel.selectedCategory == .aiChat, !viewModel.showsActions {
+        if panel?.isVisible == true, viewModel.selectedCategory == .aiChat {
             close()
         } else {
             show()
@@ -206,10 +211,12 @@ final class LauncherController: NSObject, NSWindowDelegate {
     }
 
     func handleEscape() {
-        if viewModel.showsActions {
-            close()
-        } else if viewModel.selectedCategory != .all {
-            viewModel.enterActionsMode()
+        if viewModel.selectedCategory != .all {
+            // From a tool or category, back to the All search.
+            viewModel.selectCategory(.all)
+        } else if viewModel.showsRecentActivity {
+            // Collapse the tools/recents view back to the empty search bar.
+            viewModel.dismissRecentActivity()
         } else {
             close()
         }
@@ -225,8 +232,7 @@ final class LauncherController: NSObject, NSWindowDelegate {
     /// scrolled list), with the item's title as the menu's header so the
     /// association is explicit.
     private func showOptionsForSelectedItem() {
-        guard !viewModel.showsActions,
-              viewModel.selectedCategory != .scratchpad,
+        guard               viewModel.selectedCategory != .scratchpad,
               let item = viewModel.selectedItem(),
               viewModel.isFavoritable(item) else { return }
 
@@ -366,7 +372,6 @@ final class LauncherController: NSObject, NSWindowDelegate {
         guard let panel, let hostingView = panel.contentView as? NSHostingView<LauncherView> else { return }
 
         let signature = LayoutSignature(
-            showsActions: viewModel.showsActions,
             category: viewModel.selectedCategory,
             sectionTitles: viewModel.sections.map(\.title),
             rowCount: viewModel.filtered.count,
@@ -449,13 +454,13 @@ final class LauncherController: NSObject, NSWindowDelegate {
 
             // AI Chat placeholder view: Esc and Tab navigate, everything else
             // is swallowed (no text field to receive typing yet).
-            if self.viewModel.selectedCategory == .aiChat && !self.viewModel.showsActions {
+            if self.viewModel.selectedCategory == .aiChat {
                 switch event.keyCode {
                 case 53:
                     self.handleEscape()
                     return nil
                 case 48:
-                    self.viewModel.handleTab(shift: event.modifierFlags.contains(.shift))
+                    self.handleEscape()
                     return nil
                 default:
                     return nil
@@ -465,7 +470,7 @@ final class LauncherController: NSObject, NSWindowDelegate {
             // Text Transformer mode: arrows pick a transformation, Return
             // replaces the selection, everything else is swallowed (there
             // is no text field to receive typing).
-            if self.viewModel.selectedCategory == .textTransformer && !self.viewModel.showsActions {
+            if self.viewModel.selectedCategory == .textTransformer {
                 switch event.keyCode {
                 case 125:
                     self.viewModel.moveTransformSelection(1)
@@ -480,7 +485,7 @@ final class LauncherController: NSObject, NSWindowDelegate {
                     self.handleEscape()
                     return nil
                 case 48:
-                    self.viewModel.handleTab(shift: event.modifierFlags.contains(.shift))
+                    self.handleEscape()
                     return nil
                 default:
                     return nil
@@ -491,7 +496,7 @@ final class LauncherController: NSObject, NSWindowDelegate {
             // keys; only Esc and Tab are launcher navigation. Cmd+N creates
             // a note, Cmd+P toggles the notes list; the list handles its own
             // navigation.
-            if self.viewModel.selectedCategory == .scratchpad && !self.viewModel.showsActions {
+            if self.viewModel.selectedCategory == .scratchpad {
                 if event.modifierFlags.contains(.command), event.keyCode == 45 {
                     self.viewModel.createNote()
                     return nil
@@ -507,7 +512,7 @@ final class LauncherController: NSObject, NSWindowDelegate {
                         self.handleEscape()
                         return nil
                     case 48:
-                        self.viewModel.handleTab(shift: event.modifierFlags.contains(.shift))
+                        self.handleEscape()
                         return nil
                     default:
                         return event
@@ -527,7 +532,7 @@ final class LauncherController: NSObject, NSWindowDelegate {
                         self.viewModel.scratchpadMode = .editor
                         return nil
                     case 48:
-                        self.viewModel.handleTab(shift: event.modifierFlags.contains(.shift))
+                        self.handleEscape()
                         return nil
                     default:
                         // No visible editor to receive typing while the
@@ -539,22 +544,18 @@ final class LauncherController: NSObject, NSWindowDelegate {
 
             switch event.keyCode {
             case 48:
-                self.viewModel.handleTab(shift: event.modifierFlags.contains(.shift))
+                // Tab opens the unified tools/recents view — same as ↓ and
+                // the search bar's list button — when the search is empty.
+                if self.viewModel.selectedCategory == .all,
+                   self.viewModel.query.trimmingCharacters(in: .whitespaces).isEmpty,
+                   self.viewModel.filtered.isEmpty {
+                    self.viewModel.showRecentActivity()
+                }
                 return nil
             case 123, 124, 125, 126:
-                if self.viewModel.showsActions {
-                    switch event.keyCode {
-                    case 125: self.viewModel.moveVerticalSelection(1)
-                    case 126: self.viewModel.moveVerticalSelection(-1)
-                    case 123: self.viewModel.moveToolSelection(-1)
-                    case 124: self.viewModel.moveToolSelection(1)
-                    default: break
-                    }
-                    return nil
-                }
                 if event.keyCode == 125 {
-                    // Down from an empty All search opens the recent-activity
-                    // view (favorites + last used) instead of doing nothing.
+                    // Down from an empty All search opens the tools/recents
+                    // view instead of doing nothing.
                     if self.viewModel.selectedCategory == .all,
                        self.viewModel.query.trimmingCharacters(in: .whitespaces).isEmpty,
                        self.viewModel.filtered.isEmpty {
@@ -568,18 +569,9 @@ final class LauncherController: NSObject, NSWindowDelegate {
                     self.viewModel.moveSelection(-1)
                     return nil
                 }
-                if event.keyCode == 124,
-                   self.viewModel.query.trimmingCharacters(in: .whitespaces).isEmpty {
-                    // Right from an empty search opens the tools view — the
-                    // same as Tab, but spatially it reads as "into the menu".
-                    self.viewModel.enterActionsMode()
-                    return nil
-                }
                 return event
             case 36, 76:
-                if self.viewModel.showsActions {
-                    self.viewModel.selectGridCategory()
-                } else if let item = self.viewModel.selectedItem() {
+                if let item = self.viewModel.selectedItem() {
                     self.handle(item)
                 }
                 return nil
@@ -587,9 +579,6 @@ final class LauncherController: NSObject, NSWindowDelegate {
                 self.handleEscape()
                 return nil
             default:
-                if self.viewModel.showsActions {
-                    return nil
-                }
                 return event
             }
         }

@@ -16,10 +16,7 @@ struct LauncherView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if viewModel.showsActions {
-                actionsList
-                    .transition(.blurFade)
-            } else if viewModel.selectedCategory == .textTransformer {
+            if viewModel.selectedCategory == .textTransformer {
                 transformerTool
                     .transition(.blurFade)
             } else if viewModel.selectedCategory == .aiChat {
@@ -75,7 +72,7 @@ struct LauncherView: View {
                         }
                     }
                 } else if viewModel.selectedCategory == .all && !viewModel.showsRecentActivity {
-                    Text("Press ↓ for recent activity · ⇥ for tools · ⌘K for options")
+                    Text("Press ↓ for tools and recents · ⌘K for options")
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                         .padding(.horizontal, 16)
@@ -109,16 +106,11 @@ struct LauncherView: View {
         .onChange(of: viewModel.focusToken) { _ in
             DispatchQueue.main.async { focusActiveField() }
         }
-        .onChange(of: viewModel.showsActions) { showsActions in
-            if !showsActions {
-                DispatchQueue.main.async { focusActiveField() }
-            }
-        }
         .onExitCommand { LauncherController.shared.handleEscape() }
     }
 
     private func focusActiveField() {
-        if viewModel.selectedCategory == .scratchpad && !viewModel.showsActions {
+        if viewModel.selectedCategory == .scratchpad {
             editorFocused = true
         } else {
             isFocused = true
@@ -134,63 +126,20 @@ struct LauncherView: View {
                 .font(.system(size: 20))
                 .focused($isFocused)
             Button {
-                viewModel.enterActionsMode()
+                viewModel.showRecentActivity()
             } label: {
-                Text("⇥")
+                Image(systemName: "list.bullet")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(.secondary)
                     .frame(width: 28, height: 22)
                     .background(Capsule().fill(Color.secondary.opacity(0.15)))
             }
             .buttonStyle(.plain)
-            .help("Show tools (Tab)")
+            .help("Show tools and recents (Tab or ↓)")
         }
         .padding(.horizontal, 16)
         .padding(.top, 14)
         .padding(.bottom, 12)
-    }
-
-    private var actionsList: some View {
-        let tools = LauncherViewModel.Category.toolCases
-        let browse = LauncherViewModel.Category.browseCases
-        return VStack(alignment: .leading, spacing: 10) {
-            if !tools.isEmpty {
-                actionsHeader("Tools")
-                LazyVGrid(
-                    columns: [GridItem(.adaptive(minimum: 96), spacing: 10)],
-                    spacing: 10
-                ) {
-                    ForEach(Array(tools.enumerated()), id: \.element) { index, category in
-                        LauncherToolTile(
-                            category: category,
-                            number: index + 1,
-                            isSelected: index == viewModel.gridIndex
-                        )
-                        .onTapGesture { viewModel.selectCategory(category) }
-                    }
-                }
-            }
-
-            actionsHeader("Browse")
-            VStack(spacing: 10) {
-                ForEach(Array(browse.enumerated()), id: \.element) { index, category in
-                    LauncherCategoryTile(
-                        category: category,
-                        number: tools.count + index + 1,
-                        isSelected: tools.count + index == viewModel.gridIndex
-                    )
-                    .onTapGesture { viewModel.selectCategory(category) }
-                }
-            }
-        }
-        .padding(14)
-    }
-
-    private func actionsHeader(_ title: String) -> some View {
-        Text(title)
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .padding(.horizontal, 2)
     }
 
     private var scratchpad: some View {
@@ -205,11 +154,6 @@ struct LauncherView: View {
         }
         .onChange(of: viewModel.selectedCategory) { category in
             if category != .scratchpad {
-                confirmDelete = false
-            }
-        }
-        .onChange(of: viewModel.showsActions) { showsActions in
-            if showsActions {
                 confirmDelete = false
             }
         }
@@ -496,8 +440,7 @@ struct LauncherView: View {
     /// results, category lists, and the recents view, but not the actions
     /// view or the scratchpad editor.
     private var showsOptionsFooter: Bool {
-        !viewModel.showsActions
-            && viewModel.selectedCategory != .scratchpad
+        viewModel.selectedCategory != .scratchpad
             && !viewModel.filtered.isEmpty
     }
 
@@ -527,98 +470,6 @@ extension AnyTransition {
             active: BlurFadeModifier(progress: 1),
             identity: BlurFadeModifier(progress: 0)
         )
-    }
-}
-
-struct LauncherToolTile: View {
-    let category: LauncherViewModel.Category
-    let number: Int
-    let isSelected: Bool
-
-    @State private var isHovered = false
-
-    var body: some View {
-        VStack(spacing: 6) {
-            Image(systemName: category.icon)
-                .font(.system(size: 20))
-                .frame(width: 24, height: 24)
-                .foregroundStyle(isSelected ? .primary : .secondary)
-            Text(category.label)
-                .font(.system(size: 11, weight: .medium))
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-            HStack(spacing: 2) {
-                Image(systemName: "command")
-                    .font(.system(size: 7, weight: .bold))
-                Text("\(number)")
-                    .font(.system(size: 9, weight: .bold))
-            }
-            .foregroundStyle(.secondary)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 3)
-            .background(Capsule().fill(Color.secondary.opacity(0.15)))
-        }
-        .padding(.vertical, 12)
-        .frame(maxWidth: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(tileBackground)
-        )
-        .contentShape(RoundedRectangle(cornerRadius: 10))
-        .onHover { isHovered = $0 }
-        .help(category.label)
-    }
-
-    private var tileBackground: Color {
-        if isSelected { return Color.accentColor.opacity(0.25) }
-        if isHovered { return Color.accentColor.opacity(0.10) }
-        return Color.secondary.opacity(0.08)
-    }
-}
-
-struct LauncherCategoryTile: View {
-    let category: LauncherViewModel.Category
-    let number: Int
-    let isSelected: Bool
-
-    @State private var isHovered = false
-
-    var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: category.icon)
-                .font(.system(size: 18))
-                .frame(width: 24, height: 24)
-                .foregroundStyle(isSelected ? .primary : .secondary)
-            Text(category.label)
-                .font(.system(size: 14, weight: .medium))
-                .lineLimit(1)
-            Spacer()
-            HStack(spacing: 2) {
-                Image(systemName: "command")
-                    .font(.system(size: 8, weight: .bold))
-                Text("\(number)")
-                    .font(.system(size: 10, weight: .bold))
-            }
-            .foregroundStyle(.secondary)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 4)
-            .background(Capsule().fill(Color.secondary.opacity(0.15)))
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 13)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(rowBackground)
-        )
-        .contentShape(RoundedRectangle(cornerRadius: 8))
-        .onHover { isHovered = $0 }
-    }
-
-    private var rowBackground: Color {
-        if isSelected { return Color.accentColor.opacity(0.25) }
-        if isHovered { return Color.accentColor.opacity(0.10) }
-        return Color.secondary.opacity(0.08)
     }
 }
 

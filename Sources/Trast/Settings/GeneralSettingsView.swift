@@ -14,6 +14,7 @@ struct GeneralSettingsView: View {
     @AppStorage(AppSettings.launcherOpacityKey) private var launcherOpacity: Double = 0.85
     @AppStorage(AppSettings.launcherClipboardTabKey) private var showClipboardTab: Bool = true
     @AppStorage(AppSettings.launcherSnippetsTabKey) private var showSnippetsTab: Bool = true
+    @AppStorage(AppSettings.launcherOpenViewKey) private var openView: String = "tools"
     @AppStorage(AppSettings.baseCurrencyKey) private var baseCurrency: String = "USD"
     @AppStorage(AppSettings.preferredUnitsKey) private var preferredUnits: String = "metric"
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
@@ -33,12 +34,16 @@ struct GeneralSettingsView: View {
                     Image(systemName: "circle.fill")
                 }
                 .tint(.accentColor)
+                Picker("On open", selection: $openView) {
+                    Text("Empty Search").tag("empty")
+                    Text("Tools & Recents").tag("tools")
+                }
                 Toggle("Show Clipboard tab", isOn: $showClipboardTab)
                 Toggle("Show Snippets tab", isOn: $showSnippetsTab)
             } header: {
                 Text("Launcher")
             } footer: {
-                Text("Press this shortcut anywhere to open the Launcher. The Clipboard tab shows full clipboard history; the Snippets tab shows available text snippets. Both can be toggled on or off.")
+                Text("Press this shortcut anywhere to open the Launcher. \"On open\" picks what it shows before you type: a bare search bar, or the tools/favorites/recent activity view (also available any time with ↓ or the list button). The Clipboard tab shows full clipboard history; the Snippets tab shows available text snippets.")
             }
 
             Section {

@@ -19,6 +19,7 @@ public enum AppSettings {
     public static let launcherClipboardTabKey = "launcherClipboardTab"
     public static let launcherSnippetsTabKey = "launcherSnippetsTab"
     public static let scratchpadTextKey = "scratchpadText"
+    public static let launcherOpenViewKey = "launcherOpenView"
     public static let baseCurrencyKey = "baseCurrency"
     public static let preferredUnitsKey = "preferredUnits"
     public static let aiProviderKey = "aiProvider"
@@ -71,6 +72,12 @@ public enum AppSettings {
     /// convert into.
     public static var preferredUnits: String {
         UserDefaults.standard.string(forKey: preferredUnitsKey) ?? "metric"
+    }
+
+    /// True when the launcher should open on the tools/recents view
+    /// ("tools", the default) instead of a bare search bar ("empty").
+    public static var launcherOpensToTools: Bool {
+        (UserDefaults.standard.string(forKey: launcherOpenViewKey) ?? "tools") == "tools"
     }
 
     /// BYOK provider id for the (upcoming) AI Chat tool ("openai",

@@ -296,22 +296,6 @@ final class LauncherViewModel: ObservableObject {
             cases.append(.aiChat)
             return cases
         }
-
-        /// Searchable item lists rendered as rows in the actions view.
-        static var browseCases: [Category] {
-            [.commands, .shortcuts, .applications, .trast]
-        }
-
-        /// The full keyboard navigation order for the actions view:
-        /// tool tiles first, then browse rows. Cmd+number follows it.
-        static var gridCases: [Category] {
-            toolCases + browseCases
-        }
-
-        /// True when the category is rendered as a tool tile.
-        var isTool: Bool {
-            Self.toolCases.contains(self)
-        }
     }
 
     private static let placeholders = [
@@ -332,11 +316,6 @@ final class LauncherViewModel: ObservableObject {
     }
     @Published var selectedIndex = 0
     @Published var focusToken = UUID()
-    @Published var showsActions = false
-    @Published var gridIndex = 0
-    /// The tool tile you left when dropping into the browse list, so ↑
-    /// returns to it.
-    private var lastToolIndex = 0
     @Published var showsRecentActivity = false
     @Published var scratchpadMode: ScratchpadMode = .editor
     @Published var notesSelectedIndex = 0
@@ -395,8 +374,6 @@ final class LauncherViewModel: ObservableObject {
         query = ""
         selectedIndex = 0
         focusToken = UUID()
-        showsActions = false
-        gridIndex = 0
         showsRecentActivity = false
         scratchpadMode = .editor
         notesSelectedIndex = 0
@@ -653,124 +630,25 @@ final class LauncherViewModel: ObservableObject {
         return sortedByUsage(categoryItems)
     }
 
-    private static let modeAnimation = Animation.easeInOut(duration: 0.18)
-
-    func enterActionsMode(atEnd: Bool = false) {
-        let cases = Category.gridCases
-        guard !cases.isEmpty else { return }
-        if !showsActions {
-            if let index = cases.firstIndex(of: selectedCategory) {
-                gridIndex = index
-            } else {
-                gridIndex = atEnd ? cases.count - 1 : 0
-            }
-        }
-        withAnimation(Self.modeAnimation) {
-            showsActions = true
-        }
-    }
-
-    func exitActionsMode() {
-        withAnimation(Self.modeAnimation) {
-            showsActions = false
-            selectedCategory = .all
-            gridIndex = 0
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
-            self?.focusToken = UUID()
-        }
-    }
-
-    func handleTab(shift: Bool) {
-        let cases = Category.gridCases
-        guard !cases.isEmpty else { return }
-
-        if showsActions {
-            let next = gridIndex + (shift ? -1 : 1)
-            if next < 0 || next >= cases.count {
-                exitActionsMode()
-            } else {
-                withAnimation(Self.modeAnimation) {
-                    gridIndex = next
-                }
-            }
-        } else if let currentIndex = cases.firstIndex(of: selectedCategory) {
-            let next = currentIndex + (shift ? -1 : 1)
-            if next < 0 || next >= cases.count {
-                exitActionsMode()
-            } else {
-                withAnimation(Self.modeAnimation) {
-                    gridIndex = next
-                    showsActions = true
-                }
-            }
-        } else {
-            enterActionsMode(atEnd: shift)
-        }
-    }
-
-    /// Up/down arrows in the actions view follow the visual layout, not a
-    /// flat wrap: within the browse list they walk its rows; down from a
-    /// tool drops into the first browse row; up from the browse list
-    /// returns to the tool you left. Clamped at both ends — Tab cycles, Esc
-    /// closes, so wrapping on arrows is never needed and always surprising.
-    func moveVerticalSelection(_ delta: Int) {
-        let tools = Category.toolCases
-        let browse = Category.browseCases
-        let toolCount = tools.count
-        let totalCount = toolCount + browse.count
-        guard totalCount > 0 else { return }
-
-        var next = gridIndex
-        if gridIndex < toolCount {
-            guard delta > 0, !browse.isEmpty else { return }
-            lastToolIndex = gridIndex
-            next = toolCount
-        } else if delta > 0 {
-            guard gridIndex + 1 < totalCount else { return }
-            next = gridIndex + 1
-        } else if gridIndex > toolCount {
-            next = gridIndex - 1
-        } else {
-            guard !tools.isEmpty else { return }
-            next = min(lastToolIndex, toolCount - 1)
-        }
-        guard next != gridIndex else { return }
-        withAnimation(Self.modeAnimation) {
-            gridIndex = next
-        }
-    }
-
-    /// Left/right arrows: step within the tool tile row only (the row is
-    /// horizontal, so sideways keys feel natural there). Clamps at the row
-    /// edges instead of leaving the zone — browse rows are reached with
-    /// up/down or Tab.
-    func moveToolSelection(_ delta: Int) {
-        let tools = Category.toolCases
-        guard !tools.isEmpty, gridIndex < tools.count else { return }
-        let next = min(max(gridIndex + delta, 0), tools.count - 1)
-        guard next != gridIndex else { return }
-        withAnimation(Self.modeAnimation) {
-            gridIndex = next
-        }
-    }
-
-    func selectGridCategory() {
-        guard let category = Category.gridCases[safe: gridIndex] else { return }
-        selectCategory(category)
-    }
-
+    /// Cmd+1..5: open the tool at that position in `toolCases` — the same
+    /// numbers the tool rows in the recents view badge with.
     func selectCategoryByIndex(_ index: Int) {
-        let cases = Category.gridCases
+        let cases = Category.toolCases
         guard index >= 0, index < cases.count else { return }
         selectCategory(cases[index])
+    }
+
+    /// Collapses the recent-activity view back to an empty search bar
+    /// (Esc from the recents view).
+    func dismissRecentActivity() {
+        showsRecentActivity = false
+        updateResults()
     }
 
     func selectCategory(_ category: Category) {
         selectedCategory = category
         selectedIndex = 0
         query = ""
-        showsActions = false
         focusToken = UUID()
         if category == .scratchpad {
             scratchpadMode = .editor
