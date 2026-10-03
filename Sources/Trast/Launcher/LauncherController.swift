@@ -33,6 +33,7 @@ final class LauncherController: NSObject, NSWindowDelegate {
         // height measured for the previous mode and clips the new content.
         let transformerState: LauncherViewModel.TransformerState
         let scratchpadMode: LauncherViewModel.ScratchpadMode
+        let chatMode: LauncherViewModel.ChatMode
     }
 
     override private init() {
@@ -380,7 +381,8 @@ final class LauncherController: NSObject, NSWindowDelegate {
             sectionTitles: viewModel.sections.map(\.title),
             rowCount: viewModel.filtered.count,
             transformerState: viewModel.transformerState,
-            scratchpadMode: viewModel.scratchpadMode
+            scratchpadMode: viewModel.scratchpadMode,
+            chatMode: viewModel.chatMode
         )
         // The content height can't have changed (selection move, hover);
         // skip the fittingSize measurement, which forces a full layout pass.
@@ -456,27 +458,51 @@ final class LauncherController: NSObject, NSWindowDelegate {
                 }
             }
 
-            // AI Chat: typing and Return reach the message field; Esc closes
-            // the history dialog first, then steps back; Cmd+N starts a new
-            // discussion.
+            // AI Chat: chat mode lets typing and Return reach the message
+            // field; the history list (Cmd+P, same shape as the Scratchpad's
+            // notes list) handles its own navigation; Cmd+N starts a new
+            // discussion from either mode.
             if self.viewModel.selectedCategory == .aiChat {
                 if event.modifierFlags.contains(.command), event.keyCode == 45 {
-                    ChatStore.shared.newDiscussion()
+                    self.viewModel.createNewChatDiscussion()
                     return nil
                 }
-                switch event.keyCode {
-                case 53:
-                    if self.viewModel.chatHistoryOpen {
-                        self.viewModel.chatHistoryOpen = false
-                    } else {
+                if event.modifierFlags.contains(.command), event.keyCode == 35 {
+                    self.viewModel.toggleChatHistory()
+                    return nil
+                }
+                switch self.viewModel.chatMode {
+                case .chat:
+                    switch event.keyCode {
+                    case 53:
                         self.handleEscape()
+                        return nil
+                    case 48:
+                        self.handleEscape()
+                        return nil
+                    default:
+                        return event
                     }
-                    return nil
-                case 48:
-                    self.handleEscape()
-                    return nil
-                default:
-                    return event
+                case .history:
+                    switch event.keyCode {
+                    case 125:
+                        self.viewModel.moveChatSelection(1)
+                        return nil
+                    case 126:
+                        self.viewModel.moveChatSelection(-1)
+                        return nil
+                    case 36, 76:
+                        self.viewModel.openSelectedDiscussion()
+                        return nil
+                    case 53:
+                        self.viewModel.toggleChatHistory()
+                        return nil
+                    case 48:
+                        self.handleEscape()
+                        return nil
+                    default:
+                        return nil
+                    }
                 }
             }
 

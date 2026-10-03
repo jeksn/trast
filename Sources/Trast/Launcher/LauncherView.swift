@@ -19,6 +19,7 @@ struct LauncherView: View {
     @State private var chatSending = false
     @State private var chatError: String?
     @State private var chatHasKey = false
+    @State private var chatCopied = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -289,23 +290,27 @@ struct LauncherView: View {
     }
 
     private var aiChatTool: some View {
-        VStack(spacing: 0) {
-            if chatHasKey {
-                chatHeader
-                Divider()
-                chatMessages
-                if let chatError {
+        Group {
+            if viewModel.chatMode == .history {
+                chatHistoryList
+            } else if chatHasKey {
+                VStack(spacing: 0) {
+                    chatHeader
                     Divider()
-                    Text(chatError)
-                        .font(.caption)
-                        .foregroundStyle(.red)
-                        .lineLimit(1)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 6)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    chatMessages
+                    if let chatError {
+                        Divider()
+                        Text(chatError)
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                            .lineLimit(1)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 6)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    Divider()
+                    chatInputRow
                 }
-                Divider()
-                chatInputRow
             } else {
                 VStack(spacing: 8) {
                     Image(systemName: "sparkles")
@@ -322,11 +327,6 @@ struct LauncherView: View {
                 .frame(maxWidth: .infinity)
             }
         }
-        .overlay {
-            if viewModel.chatHistoryOpen {
-                chatHistoryDialog
-            }
-        }
         .onAppear { chatHasKey = APIKeyStore.read() != nil }
         .onChange(of: viewModel.focusToken) { _ in
             // Settings may have changed while the panel was closed.
@@ -341,10 +341,20 @@ struct LauncherView: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
             Spacer()
+            if !chatStore.currentMessages.isEmpty {
+                Button {
+                    copyTranscript()
+                } label: {
+                    Image(systemName: chatCopied ? "checkmark" : "doc.on.doc")
+                        .foregroundStyle(Color.secondary)
+                }
+                .buttonStyle(.plain)
+                .help(chatCopied ? "Copied" : "Copy the whole discussion")
+            }
+
             Button {
-                chatStore.newDiscussion()
+                viewModel.createNewChatDiscussion()
                 chatError = nil
-                chatFocused = true
             } label: {
                 Image(systemName: "plus.square")
                     .foregroundStyle(Color.secondary)
@@ -353,16 +363,87 @@ struct LauncherView: View {
             .help("New discussion (⌘N)")
 
             Button {
-                viewModel.chatHistoryOpen.toggle()
+                viewModel.toggleChatHistory()
             } label: {
                 Image(systemName: "clock.arrow.circlepath")
                     .foregroundStyle(Color.secondary)
             }
             .buttonStyle(.plain)
-            .help("Previous discussions")
+            .help("Previous discussions (⌘P)")
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
+    }
+
+    /// The previous-discussions list — the same shape as the Scratchpad's
+    /// notes list, not a modal.
+    private var chatHistoryList: some View {
+        VStack(spacing: 0) {
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        if chatStore.discussions.isEmpty {
+                            Text("No discussions yet")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                                .padding(16)
+                        }
+                        ForEach(Array(chatStore.discussions.enumerated()), id: \.element.id) { index, discussion in
+                            ChatDiscussionRowView(
+                                discussion: discussion,
+                                isSelected: index == viewModel.chatSelectedIndex,
+                                isHovered: viewModel.hoveredID == discussion.id.uuidString,
+                                onDelete: { viewModel.deleteDiscussion(at: index) }
+                            )
+                            .id(discussion.id)
+                            .onHover { hovering in
+                                viewModel.setHovered(discussion.id.uuidString, hovering: hovering)
+                            }
+                            .onTapGesture { viewModel.openSelectedDiscussionID(discussion.id) }
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+                .frame(maxHeight: 360)
+                .onChange(of: viewModel.chatSelectedIndex) { index in
+                    if let discussion = chatStore.discussions[safe: index] {
+                        proxy.scrollTo(discussion.id, anchor: .center)
+                    }
+                }
+            }
+
+            Divider()
+
+            HStack(spacing: 16) {
+                Text("Return opens · Esc back")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+                Spacer()
+                Button {
+                    viewModel.createNewChatDiscussion()
+                } label: {
+                    Image(systemName: "plus.square")
+                        .foregroundStyle(Color.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("New discussion (⌘N)")
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+        }
+    }
+
+    private func copyTranscript() {
+        let transcript = chatStore.currentMessages
+            .map { ($0.role == .user ? "You: " : "AI: ") + $0.text }
+            .joined(separator: "\n\n")
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(transcript, forType: .string)
+        chatCopied = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            chatCopied = false
+        }
     }
 
     private var chatMessages: some View {
@@ -447,73 +528,6 @@ struct LauncherView: View {
                 chatError = error.localizedDescription
             }
             chatSending = false
-        }
-    }
-
-    /// The previous-discussions modal: a dialog over a scrim, no sidebar.
-    private var chatHistoryDialog: some View {
-        ZStack {
-            Color.black.opacity(0.35)
-                .ignoresSafeArea()
-                .onTapGesture { viewModel.chatHistoryOpen = false }
-            VStack(spacing: 0) {
-                Text("Previous Discussions")
-                    .font(.system(size: 13, weight: .semibold))
-                    .padding(.top, 12)
-                    .padding(.bottom, 8)
-                Divider()
-                ScrollView {
-                    VStack(spacing: 0) {
-                        if chatStore.discussions.isEmpty {
-                            Text("No discussions yet")
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
-                                .padding(16)
-                        }
-                        ForEach(chatStore.discussions) { discussion in
-                            HStack(spacing: 10) {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(discussion.title)
-                                        .font(.system(size: 13, weight: .medium))
-                                        .lineLimit(1)
-                                    Text(discussion.updatedAt, style: .relative)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                                Spacer()
-                                Button {
-                                    chatStore.delete(id: discussion.id)
-                                } label: {
-                                    Image(systemName: "trash")
-                                        .font(.system(size: 11))
-                                        .foregroundStyle(Color.secondary)
-                                }
-                                .buttonStyle(.plain)
-                                .help("Delete discussion")
-                            }
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                chatStore.open(id: discussion.id)
-                                viewModel.chatHistoryOpen = false
-                            }
-                        }
-                    }
-                    .padding(.vertical, 4)
-                }
-                .frame(maxHeight: 260)
-            }
-            .frame(width: 360)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(.regularMaterial)
-                    .shadow(color: .black.opacity(0.25), radius: 12, y: 4)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .strokeBorder(Color.secondary.opacity(0.2))
-            )
         }
     }
 
@@ -720,23 +734,87 @@ extension AnyTransition {
 struct ChatBubbleView: View {
     let message: ChatMessage
 
+    @State private var isHovered = false
+    @State private var copied = false
+
     var body: some View {
         HStack(alignment: .top, spacing: 0) {
             if message.role == .user { Spacer(minLength: 48) }
-            Text(message.text)
-                .font(.system(size: 13))
-                .foregroundStyle(message.role == .user ? .primary : .primary)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(message.role == .user
-                              ? Color.accentColor.opacity(0.25)
-                              : Color.secondary.opacity(0.12))
-                )
-                .lineLimit(nil)
+            VStack(alignment: message.role == .user ? .trailing : .leading, spacing: 2) {
+                Text(message.text)
+                    .font(.system(size: 13))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(message.role == .user
+                                  ? Color.accentColor.opacity(0.25)
+                                  : Color.secondary.opacity(0.12))
+                    )
+                    .lineLimit(nil)
+                if message.role == .assistant, isHovered {
+                    Button {
+                        let pasteboard = NSPasteboard.general
+                        pasteboard.clearContents()
+                        pasteboard.setString(message.text, forType: .string)
+                        copied = true
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                            copied = false
+                        }
+                    } label: {
+                        Image(systemName: copied ? "checkmark" : "doc.on.doc")
+                            .font(.system(size: 10))
+                            .foregroundStyle(Color.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help(copied ? "Copied" : "Copy reply")
+                }
+            }
             if message.role == .assistant { Spacer(minLength: 48) }
         }
+        .onHover { isHovered = $0 }
+    }
+}
+
+struct ChatDiscussionRowView: View {
+    let discussion: ChatDiscussion
+    let isSelected: Bool
+    var isHovered = false
+    let onDelete: () -> Void
+
+    var body: some View {
+        HStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(discussion.title)
+                    .font(.system(size: 14, weight: .medium))
+                    .lineLimit(1)
+                Text(discussion.updatedAt, style: .relative)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            Spacer()
+            Button(action: onDelete) {
+                Image(systemName: "trash")
+                    .font(.system(size: 11))
+                    .foregroundStyle(Color.secondary)
+            }
+            .buttonStyle(.plain)
+            .help("Delete discussion")
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 6)
+                .fill(rowBackground)
+        )
+        .padding(.horizontal, 6)
+    }
+
+    private var rowBackground: Color {
+        if isSelected { return Color.accentColor.opacity(0.25) }
+        if isHovered { return Color.accentColor.opacity(0.10) }
+        return Color.clear
     }
 }
 

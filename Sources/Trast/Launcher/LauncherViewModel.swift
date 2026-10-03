@@ -321,8 +321,16 @@ final class LauncherViewModel: ObservableObject {
     /// reused across section changes under the same identity, where @State
     /// can survive a missed hover-exit and stay stuck highlighted.
     @Published var hoveredID: String?
-    /// The AI Chat history dialog (modal overlay over the chat view).
-    @Published var chatHistoryOpen = false
+    /// The AI Chat tool has two modes: the conversation, and the previous-
+    /// discussions list (Cmd+P) — the same shape as the Scratchpad's editor
+    /// and notes list.
+    enum ChatMode {
+        case chat
+        case history
+    }
+
+    @Published var chatMode: ChatMode = .chat
+    @Published var chatSelectedIndex = 0
     @Published var scratchpadMode: ScratchpadMode = .editor
     @Published var notesSelectedIndex = 0
 
@@ -424,6 +432,46 @@ final class LauncherViewModel: ObservableObject {
     func openSelectedNote() {
         guard let note = NotesStore.shared.notes[safe: notesSelectedIndex] else { return }
         openNote(note.id)
+    }
+
+    // MARK: - AI Chat
+
+    func createNewChatDiscussion() {
+        ChatStore.shared.newDiscussion()
+        chatMode = .chat
+        chatSelectedIndex = 0
+        focusToken = UUID()
+    }
+
+    func toggleChatHistory() {
+        chatMode = chatMode == .history ? .chat : .history
+        chatSelectedIndex = 0
+        if chatMode == .chat {
+            focusToken = UUID()
+        }
+    }
+
+    func moveChatSelection(_ delta: Int) {
+        let count = ChatStore.shared.discussions.count
+        guard count > 0 else { return }
+        chatSelectedIndex = (chatSelectedIndex + delta + count) % count
+    }
+
+    func openSelectedDiscussion() {
+        guard let discussion = ChatStore.shared.discussions[safe: chatSelectedIndex] else { return }
+        openSelectedDiscussionID(discussion.id)
+    }
+
+    func openSelectedDiscussionID(_ id: UUID) {
+        ChatStore.shared.open(id: id)
+        chatMode = .chat
+        focusToken = UUID()
+    }
+
+    func deleteDiscussion(at index: Int) {
+        guard let discussion = ChatStore.shared.discussions[safe: index] else { return }
+        ChatStore.shared.delete(id: discussion.id)
+        chatSelectedIndex = min(chatSelectedIndex, max(ChatStore.shared.discussions.count - 1, 0))
     }
 
     // MARK: - Text Transformer
@@ -666,7 +714,8 @@ final class LauncherViewModel: ObservableObject {
             notesSelectedIndex = 0
         }
         if category == .aiChat {
-            chatHistoryOpen = false
+            chatMode = .chat
+            chatSelectedIndex = 0
         }
         if category == .textTransformer {
             LauncherController.shared.enterTextTransformer()
