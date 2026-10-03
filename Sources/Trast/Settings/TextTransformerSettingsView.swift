@@ -19,10 +19,14 @@ struct TextTransformerSettingsView: View {
                 ForEach(Array(order.enumerated()), id: \.element) { index, raw in
                     transformRow(raw: raw, index: index)
                 }
+                .onMove { source, destination in
+                    order.move(fromOffsets: IndexSet(source), toOffset: destination)
+                    AppSettings.saveTransformOrder(order)
+                }
             } header: {
                 Text("Transformations")
             } footer: {
-                Text("Enabled transformations appear in the tool in this order. Disable the ones you never use to keep the list short.")
+                Text("Drag to reorder (or use the arrows) — the tool shows the transformations in this order. Disable the ones you never use to keep the list short.")
             }
         }
         .formStyle(.grouped)
