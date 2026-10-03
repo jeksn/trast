@@ -456,18 +456,27 @@ final class LauncherController: NSObject, NSWindowDelegate {
                 }
             }
 
-            // AI Chat placeholder view: Esc and Tab navigate, everything else
-            // is swallowed (no text field to receive typing yet).
+            // AI Chat: typing and Return reach the message field; Esc closes
+            // the history dialog first, then steps back; Cmd+N starts a new
+            // discussion.
             if self.viewModel.selectedCategory == .aiChat {
+                if event.modifierFlags.contains(.command), event.keyCode == 45 {
+                    ChatStore.shared.newDiscussion()
+                    return nil
+                }
                 switch event.keyCode {
                 case 53:
-                    self.handleEscape()
+                    if self.viewModel.chatHistoryOpen {
+                        self.viewModel.chatHistoryOpen = false
+                    } else {
+                        self.handleEscape()
+                    }
                     return nil
                 case 48:
                     self.handleEscape()
                     return nil
                 default:
-                    return nil
+                    return event
                 }
             }
 

@@ -7,12 +7,18 @@ struct LauncherView: View {
     let onSelect: (LauncherItem) -> Void
     @AppStorage(AppSettings.launcherOpacityKey) private var opacity: Double = 0.85
     @ObservedObject private var notesStore = NotesStore.shared
+    @ObservedObject private var chatStore = ChatStore.shared
 
     @FocusState private var isFocused: Bool
     @FocusState private var editorFocused: Bool
+    @FocusState private var chatFocused: Bool
 
     @State private var showsCopied = false
     @State private var confirmDelete = false
+    @State private var chatInput = ""
+    @State private var chatSending = false
+    @State private var chatError: String?
+    @State private var chatHasKey = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -114,6 +120,8 @@ struct LauncherView: View {
     private func focusActiveField() {
         if viewModel.selectedCategory == .scratchpad {
             editorFocused = true
+        } else if viewModel.selectedCategory == .aiChat {
+            chatFocused = true
         } else {
             isFocused = true
         }
@@ -281,21 +289,232 @@ struct LauncherView: View {
     }
 
     private var aiChatTool: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "sparkles")
-                .font(.system(size: 20))
-                .foregroundStyle(.secondary)
-            Text("AI Chat is coming soon")
-                .font(.system(size: 14, weight: .medium))
-            Text(AppSettings.hasAIAPIKey
-                 ? "Your API key is saved in Settings → Tools — the chat arrives in a future release."
-                 : "Add your provider and API key in Settings → Tools, and the chat arrives in a future release.")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
-                .multilineTextAlignment(.center)
+        VStack(spacing: 0) {
+            if chatHasKey {
+                chatHeader
+                Divider()
+                chatMessages
+                if let chatError {
+                    Divider()
+                    Text(chatError)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                        .lineLimit(1)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 6)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                Divider()
+                chatInputRow
+            } else {
+                VStack(spacing: 8) {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 20))
+                        .foregroundStyle(.secondary)
+                    Text("AI Chat")
+                        .font(.system(size: 14, weight: .medium))
+                    Text("Add your provider and API key in Settings → AI Chat to start chatting.")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(24)
+                .frame(maxWidth: .infinity)
+            }
         }
-        .padding(24)
-        .frame(maxWidth: .infinity)
+        .overlay {
+            if viewModel.chatHistoryOpen {
+                chatHistoryDialog
+            }
+        }
+        .onAppear { chatHasKey = APIKeyStore.read() != nil }
+        .onChange(of: viewModel.focusToken) { _ in
+            // Settings may have changed while the panel was closed.
+            chatHasKey = APIKeyStore.read() != nil
+        }
+    }
+
+    private var chatHeader: some View {
+        HStack(spacing: 12) {
+            Text(chatStore.currentDiscussion?.title ?? "New chat")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+            Spacer()
+            Button {
+                chatStore.newDiscussion()
+                chatError = nil
+                chatFocused = true
+            } label: {
+                Image(systemName: "plus.square")
+                    .foregroundStyle(Color.secondary)
+            }
+            .buttonStyle(.plain)
+            .help("New discussion (⌘N)")
+
+            Button {
+                viewModel.chatHistoryOpen.toggle()
+            } label: {
+                Image(systemName: "clock.arrow.circlepath")
+                    .foregroundStyle(Color.secondary)
+            }
+            .buttonStyle(.plain)
+            .help("Previous discussions")
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+    }
+
+    private var chatMessages: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 10) {
+                    ForEach(Array(chatStore.currentMessages.enumerated()), id: \.offset) { index, message in
+                        ChatBubbleView(message: message)
+                            .id(index)
+                    }
+                    if chatSending {
+                        HStack(spacing: 6) {
+                            ProgressView()
+                                .controlSize(.small)
+                            Text("Thinking…")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .id("thinking")
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+            }
+            .frame(maxHeight: 280)
+            .onChange(of: chatStore.discussions) { _ in
+                scrollToBottom(proxy)
+            }
+            .onAppear {
+                scrollToBottom(proxy)
+            }
+        }
+    }
+
+    private func scrollToBottom(_ proxy: ScrollViewProxy) {
+        if chatSending {
+            proxy.scrollTo("thinking", anchor: .bottom)
+        } else {
+            proxy.scrollTo(max(chatStore.currentMessages.count - 1, 0), anchor: .bottom)
+        }
+    }
+
+    private var chatInputRow: some View {
+        HStack(spacing: 10) {
+            TextField("Message…", text: $chatInput)
+                .textFieldStyle(.plain)
+                .font(.system(size: 14))
+                .focused($chatFocused)
+                .onSubmit(sendChatMessage)
+            Button {
+                sendChatMessage()
+            } label: {
+                if chatSending {
+                    ProgressView()
+                        .controlSize(.small)
+                } else {
+                    Image(systemName: "paperplane")
+                        .foregroundStyle(chatInput.trimmingCharacters(in: .whitespaces).isEmpty ? Color.secondary : Color.accentColor)
+                }
+            }
+            .buttonStyle(.plain)
+            .disabled(chatSending || chatInput.trimmingCharacters(in: .whitespaces).isEmpty)
+            .help("Send (Return)")
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+    }
+
+    private func sendChatMessage() {
+        let text = chatInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty, !chatSending else { return }
+        chatError = nil
+        chatInput = ""
+        chatStore.appendToCurrent(ChatMessage(role: .user, text: text))
+        chatSending = true
+        let messages = chatStore.currentMessages
+        Task { @MainActor in
+            do {
+                let reply = try await ChatService.send(messages: messages)
+                chatStore.appendToCurrent(ChatMessage(role: .assistant, text: reply))
+            } catch {
+                chatError = error.localizedDescription
+            }
+            chatSending = false
+        }
+    }
+
+    /// The previous-discussions modal: a dialog over a scrim, no sidebar.
+    private var chatHistoryDialog: some View {
+        ZStack {
+            Color.black.opacity(0.35)
+                .ignoresSafeArea()
+                .onTapGesture { viewModel.chatHistoryOpen = false }
+            VStack(spacing: 0) {
+                Text("Previous Discussions")
+                    .font(.system(size: 13, weight: .semibold))
+                    .padding(.top, 12)
+                    .padding(.bottom, 8)
+                Divider()
+                ScrollView {
+                    VStack(spacing: 0) {
+                        if chatStore.discussions.isEmpty {
+                            Text("No discussions yet")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                                .padding(16)
+                        }
+                        ForEach(chatStore.discussions) { discussion in
+                            HStack(spacing: 10) {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(discussion.title)
+                                        .font(.system(size: 13, weight: .medium))
+                                        .lineLimit(1)
+                                    Text(discussion.updatedAt, style: .relative)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                Button {
+                                    chatStore.delete(id: discussion.id)
+                                } label: {
+                                    Image(systemName: "trash")
+                                        .font(.system(size: 11))
+                                        .foregroundStyle(Color.secondary)
+                                }
+                                .buttonStyle(.plain)
+                                .help("Delete discussion")
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                chatStore.open(id: discussion.id)
+                                viewModel.chatHistoryOpen = false
+                            }
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+                .frame(maxHeight: 260)
+            }
+            .frame(width: 360)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(.regularMaterial)
+                    .shadow(color: .black.opacity(0.25), radius: 12, y: 4)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(Color.secondary.opacity(0.2))
+            )
+        }
     }
 
     private var transformerTool: some View {
@@ -495,6 +714,29 @@ extension AnyTransition {
             active: BlurFadeModifier(progress: 1),
             identity: BlurFadeModifier(progress: 0)
         )
+    }
+}
+
+struct ChatBubbleView: View {
+    let message: ChatMessage
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 0) {
+            if message.role == .user { Spacer(minLength: 48) }
+            Text(message.text)
+                .font(.system(size: 13))
+                .foregroundStyle(message.role == .user ? .primary : .primary)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(message.role == .user
+                              ? Color.accentColor.opacity(0.25)
+                              : Color.secondary.opacity(0.12))
+                )
+                .lineLimit(nil)
+            if message.role == .assistant { Spacer(minLength: 48) }
+        }
     }
 }
 

@@ -321,6 +321,8 @@ final class LauncherViewModel: ObservableObject {
     /// reused across section changes under the same identity, where @State
     /// can survive a missed hover-exit and stay stuck highlighted.
     @Published var hoveredID: String?
+    /// The AI Chat history dialog (modal overlay over the chat view).
+    @Published var chatHistoryOpen = false
     @Published var scratchpadMode: ScratchpadMode = .editor
     @Published var notesSelectedIndex = 0
 
@@ -662,6 +664,9 @@ final class LauncherViewModel: ObservableObject {
         if category == .scratchpad {
             scratchpadMode = .editor
             notesSelectedIndex = 0
+        }
+        if category == .aiChat {
+            chatHistoryOpen = false
         }
         if category == .textTransformer {
             LauncherController.shared.enterTextTransformer()

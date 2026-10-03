@@ -26,6 +26,7 @@ public enum AppSettings {
     public static let preferredUnitsKey = "preferredUnits"
     public static let aiProviderKey = "aiProvider"
     public static let aiAPIKeyKey = "aiAPIKey"
+    public static let aiModelKey = "aiModel"
 
     public static var gap: Double {
         UserDefaults.standard.double(forKey: gapKey)
@@ -127,8 +128,8 @@ public enum AppSettings {
         UserDefaults.standard.string(forKey: aiProviderKey) ?? "openai"
     }
 
-    /// True when an AI Chat API key has been entered in Settings → Tools.
-    public static var hasAIAPIKey: Bool {
-        !(UserDefaults.standard.string(forKey: aiAPIKeyKey) ?? "").isEmpty
+    /// The model id for AI Chat requests; empty means the provider default.
+    public static var aiModel: String {
+        UserDefaults.standard.string(forKey: aiModelKey) ?? ""
     }
 }
