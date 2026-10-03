@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.10.0 — Launcher tools: Text Transformer, notes, favorites (Sep 30, 2026)
+
+- Actions view rebuilt as **Tools + Browse**: interactive tools are tiles in a wrapping grid (Scratchpad, Clipboard, Snippets, Text Transformer, AI Chat) above a compact list of categories (Window Commands, Shortcuts, Apps, Trast) — new tools no longer lengthen a list, and arrow keys now follow the layout instead of a flat wrap
+- **Text Transformer**: select text in any app, open the tool (its own hotkey in Settings → Tools), pick a case transformation with a live preview (UPPERCASE, lowercase, Title Case, Sentence case, camelCase, PascalCase, snake_case, kebab-case, CONSTANT_CASE, tOGGLE cASE), and press Return — the selection is replaced in place and your clipboard is untouched
+- **Scratchpad notes**: the Scratchpad now holds multiple notes — ⌘N starts a new one, ⌘P lists them as one-line excerpts with last-edited times, Return opens, Delete cleans up; your existing scratchpad text migrates to the first note
+- **Favorites**: right-click any result (or press ⌘K on the highlighted row) to pin apps, commands, and shortcuts as favorites; favorited rows show a star
+- **Recent activity**: press ↓ on an empty search to see your favorites and the last things you used, favorites pinned on top
+- **AI Chat groundwork**: provider picker (OpenAI, Anthropic, Google, Mistral, OpenRouter) and API key storage in the new Settings → Tools tab, with a dedicated hotkey — the chat interface ships in a future release
+
 ## v0.9.0 — Launcher calculator, live app list (Sep 30, 2026)
 
 - Launcher calculator: type math (`2^10*2`), unit conversions (`5 km to miles`, `72 f`), or currency (`10 usd to eur`) in the launcher and press Return to copy the result; the result row appears above all other results
