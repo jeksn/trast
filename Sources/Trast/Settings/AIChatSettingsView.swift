@@ -1,22 +1,21 @@
 import SwiftUI
 import TrastCore
 
-struct ToolsSettingsView: View {
+struct AIChatSettingsView: View {
     @AppStorage(AppSettings.aiProviderKey) private var aiProvider = "openai"
     @AppStorage(AppSettings.aiAPIKeyKey) private var aiAPIKey = ""
 
     var body: some View {
         Form {
             Section {
-                HotkeyRecorderView("Open Text Transformer:", name: HotkeyManager.openTextTransformer)
+                HotkeyRecorderView("Open AI Chat:", name: HotkeyManager.openAIChat)
             } header: {
-                Text("Text Transformer")
+                Text("Hotkey")
             } footer: {
-                Text("Opens the Launcher on the Text Transformer. Select text in any app first — it reads the selection and replaces it in place when you pick a transformation. Your clipboard is untouched.")
+                Text("Opens the Launcher on the AI Chat tool.")
             }
 
             Section {
-                HotkeyRecorderView("Open AI Chat:", name: HotkeyManager.openAIChat)
                 Picker("Provider", selection: $aiProvider) {
                     Text("OpenAI").tag("openai")
                     Text("Anthropic").tag("anthropic")
@@ -27,7 +26,7 @@ struct ToolsSettingsView: View {
                 SecureField("API Key", text: $aiAPIKey)
                     .privacySensitive()
             } header: {
-                Text("AI Chat — coming soon")
+                Text("API Access — coming soon")
             } footer: {
                 Text("The chat interface is under development. Your provider and API key are stored locally on this Mac and ready for when it ships; nothing is sent anywhere yet.")
             }

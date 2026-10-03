@@ -324,57 +324,72 @@ struct LauncherView: View {
                 .frame(maxWidth: .infinity)
 
             case .ready:
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Selected text")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                    Text(singleLinePreview(viewModel.transformerText))
-                        .font(.system(size: 12, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 12)
-                .padding(.bottom, 8)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                if viewModel.transforms.isEmpty {
+                    VStack(spacing: 6) {
+                        Image(systemName: "textformat")
+                            .font(.system(size: 20))
+                            .foregroundStyle(.secondary)
+                        Text("No transformations enabled")
+                            .font(.system(size: 14, weight: .medium))
+                        Text("Enable them in Settings → Text Transformer")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                    .padding(24)
+                    .frame(maxWidth: .infinity)
+                } else {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Selected text")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                        Text(singleLinePreview(viewModel.transformerText))
+                            .font(.system(size: 12, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 12)
+                    .padding(.bottom, 8)
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
-                Divider()
+                    Divider()
 
-                ScrollViewReader { proxy in
-                    ScrollView {
-                        LazyVStack(spacing: 0) {
-                            ForEach(Array(TextTransform.allCases.enumerated()), id: \.element.id) { index, transform in
-                                TransformRowView(
-                                    transform: transform,
-                                    preview: singleLinePreview(transform.apply(to: viewModel.transformerText)),
-                                    isSelected: index == viewModel.transformSelectedIndex
-                                )
-                                .id(transform.id)
-                                .onTapGesture {
-                                    LauncherController.shared.applySelectedTransform()
+                    ScrollViewReader { proxy in
+                        ScrollView {
+                            LazyVStack(spacing: 0) {
+                                ForEach(Array(viewModel.transforms.enumerated()), id: \.element.id) { index, transform in
+                                    TransformRowView(
+                                        transform: transform,
+                                        preview: singleLinePreview(transform.apply(to: viewModel.transformerText)),
+                                        isSelected: index == viewModel.transformSelectedIndex
+                                    )
+                                    .id(transform.id)
+                                    .onTapGesture {
+                                        LauncherController.shared.applySelectedTransform()
+                                    }
                                 }
                             }
+                            .padding(.vertical, 4)
                         }
-                        .padding(.vertical, 4)
-                    }
-                    .frame(maxHeight: 360)
-                    .onChange(of: viewModel.transformSelectedIndex) { index in
-                        if let transform = TextTransform.allCases[safe: index] {
-                            proxy.scrollTo(transform.id, anchor: .center)
+                        .frame(maxHeight: 360)
+                        .onChange(of: viewModel.transformSelectedIndex) { index in
+                            if let transform = viewModel.transforms[safe: index] {
+                                proxy.scrollTo(transform.id, anchor: .center)
+                            }
                         }
                     }
-                }
 
-                Divider()
+                    Divider()
 
-                HStack {
-                    Text("Return replaces the selection")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                    Spacer()
+                    HStack {
+                        Text("Return replaces the selection")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                        Spacer()
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
             }
         }
     }

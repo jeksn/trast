@@ -331,6 +331,9 @@ final class LauncherViewModel: ObservableObject {
     @Published var transformerState: TransformerState = .capturing
     @Published var transformerText: String = ""
     @Published var transformSelectedIndex = 0
+    /// The enabled transformations in the user's chosen order
+    /// (Settings → Text Transformer), loaded on tool entry.
+    @Published var transforms: [TextTransform] = []
     @Published private(set) var filtered: [LauncherItem] = []
     @Published private(set) var sections: [LauncherSection] = []
     /// Mirrors `FavoritesStore` so rows re-render when a favorite toggles.
@@ -426,6 +429,7 @@ final class LauncherViewModel: ObservableObject {
         transformerState = .capturing
         transformerText = ""
         transformSelectedIndex = 0
+        transforms = AppSettings.orderedTransforms
     }
 
     func finishTextTransformerCapture(_ text: String?) {
@@ -439,14 +443,14 @@ final class LauncherViewModel: ObservableObject {
     }
 
     func moveTransformSelection(_ delta: Int) {
-        let count = TextTransform.allCases.count
+        let count = transforms.count
         guard count > 0 else { return }
         transformSelectedIndex = (transformSelectedIndex + delta + count) % count
     }
 
     func selectedTransform() -> TextTransform? {
         guard transformerState == .ready else { return nil }
-        return TextTransform.allCases[safe: transformSelectedIndex]
+        return transforms[safe: transformSelectedIndex]
     }
 
     /// Opens the recent-activity view (↓ with an empty query in All):

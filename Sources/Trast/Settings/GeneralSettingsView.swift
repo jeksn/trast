@@ -35,15 +35,15 @@ struct GeneralSettingsView: View {
                 }
                 .tint(.accentColor)
                 Picker("On open", selection: $openView) {
-                    Text("Empty Search").tag("empty")
-                    Text("Tools & Recents").tag("tools")
+                    Text("Compact").tag("empty")
+                    Text("Full").tag("tools")
                 }
                 Toggle("Show Clipboard tab", isOn: $showClipboardTab)
                 Toggle("Show Snippets tab", isOn: $showSnippetsTab)
             } header: {
                 Text("Launcher")
             } footer: {
-                Text("Press this shortcut anywhere to open the Launcher. \"On open\" picks what it shows before you type: a bare search bar, or the tools/favorites/recent activity view (also available any time with ↓ or the list button). The Clipboard tab shows full clipboard history; the Snippets tab shows available text snippets.")
+                Text("Press this shortcut anywhere to open the Launcher. \"On open\" picks what it shows before you type: Compact is a bare search bar, Full is the tools/favorites/recent activity view (also available any time with ↓ or the list button). The Clipboard tab shows full clipboard history; the Snippets tab shows available text snippets.")
             }
 
             Section {

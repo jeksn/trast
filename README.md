@@ -22,7 +22,7 @@ Press the launcher hotkey (Settings → General to record it) and type. Results 
 - **Clipboard history** — every copy is captured (up to the configured limit, 100 by default); search matches the full content of each item, not just the first line, and selecting pastes straight into the frontmost app. A dedicated hotkey (Settings → Window) opens the launcher on the Clipboard tab
 - **Snippets** — the Snippets tab lists your snippets; select to copy the resolved text (with template variables filled in)
 - **Scratchpad** — a quick-notes pad that persists across opens and relaunches: ⌘N (or the New button) starts a fresh note, ⌘P lists all notes as one-line excerpts with their last-edited time, Return opens one. The editor footer has Copy and Delete. A dedicated hotkey (Settings → Scratchpad) opens the launcher straight on it
-- **Tools view** — ↓, Tab, or the list button next to the search bar opens the unified view: every tool as a compact row (Scratchpad, Clipboard, Snippets, Text Transformer, AI Chat — with ⌘-number badges, so Cmd+1..5 opens them from anywhere), then your favorites, then the last things you used. The "On open" setting (Settings → General) shows it immediately whenever the launcher opens
+- **Tools view** — ↓, Tab, or the list button next to the search bar opens the unified view: every tool as a compact row (Scratchpad, Clipboard, Snippets, Text Transformer, AI Chat — with ⌘-number badges, so Cmd+1..5 opens them from anywhere), then your favorites, then the last things you used. The "On open" setting (Settings → General, Compact or Full) shows it immediately whenever the launcher opens
 - **Text Transformer** — select text in any app, open the tool (its own hotkey in Settings → Tools, or from the tools view) and pick a case transformation with a live preview of the result (UPPERCASE, lowercase, Title Case, Sentence case, camelCase, PascalCase, snake_case, kebab-case, CONSTANT_CASE, tOGGLE cASE); Return replaces the selection in the original app. Your clipboard is borrowed for a moment and restored, and nothing lands in clipboard history
 - **AI Chat (coming soon)** — bring your own API key: pick a provider (OpenAI, Anthropic, Google, Mistral, OpenRouter), store the key in Settings → Tools, and the chat interface will use it when it ships. The tile opens a coming-soon view today
 - **Favorites & recent activity** — press ↓ with an empty search for the unified view: every tool as a compact row first, then your favorites, then the last things you used. Right-click any result or press ⌘K on the highlighted row to favorite it
@@ -129,7 +129,8 @@ Re-grant Accessibility one last time — after that, rebuilds keep the permissio
 | **Shortcuts** | Add shortcuts of three kinds (App, URL/Link, Folder/File), each with its own global hotkey; grouped by type |
 | **Snippets** | Create text snippets with keywords and template variables; toggle individual snippets on/off; grouped by enabled/disabled |
 | **Clipboard** | Monitor toggle, history size, auto-clear interval, clear history |
-| **Tools** | Text Transformer hotkey; AI Chat hotkey, provider, and API key (chat coming soon) |
+| **Text Transformer** | Open hotkey; the transformation list — reorder and enable/disable each one |
+| **AI Chat** | Open hotkey; provider and API key (chat coming soon) |
 | **Scratchpad** | Scratchpad hotkey, delete all notes |
 
 ### URL scheme
