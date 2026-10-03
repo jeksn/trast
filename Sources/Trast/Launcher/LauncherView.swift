@@ -58,7 +58,15 @@ struct LauncherView: View {
                                             isFavorite: viewModel.isFavorite(item),
                                             onToggleFavorite: { viewModel.toggleFavorite(item.id) }
                                         )
-                                            .id(item.id)
+                                            // No explicit .id() here: rows move
+                                            // between sections (favorites ->
+                                            // search results) and an explicit
+                                            // id makes SwiftUI reuse the same
+                                            // view across that move - a reused
+                                            // row then silently stops painting
+                                            // selection/hover updates. The
+                                            // ForEach identity (LauncherItem.id)
+                                            // is what scrollTo targets instead.
                                             .onHover { hovering in
                                                 viewModel.setHovered(item.id, hovering: hovering)
                                             }
