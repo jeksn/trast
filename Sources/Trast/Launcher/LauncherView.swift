@@ -49,24 +49,14 @@ struct LauncherView: View {
                                     }
                                     ForEach(section.items) { item in
                                         LauncherRowView(
+                                            viewModel: viewModel,
                                             item: item,
-                                            isSelected: item.id == selectedID,
-                                            isHovered: viewModel.hoveredID == item.id,
                                             query: viewModel.query,
                                             hotkeyDisplay: viewModel.hotkeyDisplay(for: item),
                                             canFavorite: viewModel.isFavoritable(item),
                                             isFavorite: viewModel.isFavorite(item),
                                             onToggleFavorite: { viewModel.toggleFavorite(item.id) }
                                         )
-                                            // No explicit .id() here: rows move
-                                            // between sections (favorites ->
-                                            // search results) and an explicit
-                                            // id makes SwiftUI reuse the same
-                                            // view across that move - a reused
-                                            // row then silently stops painting
-                                            // selection/hover updates. The
-                                            // ForEach identity (LauncherItem.id)
-                                            // is what scrollTo targets instead.
                                             .onHover { hovering in
                                                 viewModel.setHovered(item.id, hovering: hovering)
                                             }
@@ -583,14 +573,26 @@ struct NoteRowView: View {
 }
 
 struct LauncherRowView: View {
+    // The row observes the view model itself and derives isSelected/isHovered
+    // from it: rows that moved between sections (favorites -> search results)
+    // get reused by the LazyVStack under the same ForEach id, and a reused
+    // row silently stops painting INPUT-driven changes on this macOS version.
+    // A view that self-invalidates on every model change can't go stale.
+    @ObservedObject var viewModel: LauncherViewModel
     let item: LauncherItem
-    let isSelected: Bool
-    var isHovered = false
     let query: String
     let hotkeyDisplay: String?
     var canFavorite = false
     var isFavorite = false
     var onToggleFavorite: (() -> Void)? = nil
+
+    private var isSelected: Bool {
+        viewModel.filtered[safe: viewModel.selectedIndex]?.id == item.id
+    }
+
+    private var isHovered: Bool {
+        viewModel.hoveredID == item.id
+    }
 
     var body: some View {
         HStack(spacing: 12) {
