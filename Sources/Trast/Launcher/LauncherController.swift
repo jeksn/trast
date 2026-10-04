@@ -219,10 +219,8 @@ final class LauncherController: NSObject, NSWindowDelegate {
             // A typed search: clear it back to the main (empty or tools)
             // view — not straight out of the launcher.
             viewModel.query = ""
-        } else if viewModel.showsRecentActivity {
-            // Collapse the tools/recents view back to the empty search bar.
-            viewModel.dismissRecentActivity()
         } else {
+            // Empty search, Compact or Full: close immediately.
             close()
         }
     }

@@ -697,13 +697,6 @@ final class LauncherViewModel: ObservableObject {
         selectCategory(cases[index])
     }
 
-    /// Collapses the recent-activity view back to an empty search bar
-    /// (Esc from the recents view).
-    func dismissRecentActivity() {
-        showsRecentActivity = false
-        updateResults()
-    }
-
     func selectCategory(_ category: Category) {
         selectedCategory = category
         selectedIndex = 0
