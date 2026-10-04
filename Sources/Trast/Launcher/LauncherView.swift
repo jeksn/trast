@@ -731,6 +731,21 @@ extension AnyTransition {
     }
 }
 
+extension Date {
+    /// "Oct 3" for the current year, "Oct 3, 2025" otherwise — the plain
+    /// date for list rows, instead of relative "2 hours ago" text.
+    var rowDateLabel: String {
+        let formatter = DateFormatter()
+        let calendar = Calendar.current
+        if calendar.component(.year, from: self) == calendar.component(.year, from: Date()) {
+            formatter.setLocalizedDateFormatFromTemplate("MMMd")
+        } else {
+            formatter.setLocalizedDateFormatFromTemplate("yMMMd")
+        }
+        return formatter.string(from: self)
+    }
+}
+
 struct ChatBubbleView: View {
     let message: ChatMessage
 
@@ -788,7 +803,7 @@ struct ChatDiscussionRowView: View {
                 Text(discussion.title)
                     .font(.system(size: 14, weight: .medium))
                     .lineLimit(1)
-                Text(discussion.updatedAt, style: .relative)
+                Text(discussion.updatedAt.rowDateLabel)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -869,7 +884,7 @@ struct NoteRowView: View {
                 Text(note.excerpt.isEmpty ? "Empty note" : note.excerpt)
                     .font(.system(size: 14, weight: .medium))
                     .lineLimit(1)
-                Text(note.updatedAt, style: .relative)
+                Text(note.updatedAt.rowDateLabel)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
