@@ -73,7 +73,7 @@ Press the launcher hotkey (Settings → General to record it) and type. Results 
 - **Export / Import** — back up and restore all commands and shortcuts to a JSON file
 - **Launch at login**
 - **Check for Updates** — in-app updater that downloads and installs new releases from GitHub
-- **Panel appearance** — the launcher sits on a slightly darkened material (Spotlight-like); "Slight transparency" (General settings) keeps a subtle 85% translucency, off renders it fully opaque
+- **Panel appearance** — dark mode uses a darker, Spotlight-like panel material; "Slight transparency" (General settings) keeps a subtle 85% translucency, off renders it fully opaque
 
 ## Requirements
 

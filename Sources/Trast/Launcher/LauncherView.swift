@@ -6,6 +6,7 @@ struct LauncherView: View {
     @ObservedObject var viewModel: LauncherViewModel
     let onSelect: (LauncherItem) -> Void
     @ObservedObject private var notesStore = NotesStore.shared
+    @Environment(\.colorScheme) private var colorScheme
     @ObservedObject private var chatStore = ChatStore.shared
 
     @FocusState private var isFocused: Bool
@@ -104,13 +105,12 @@ struct LauncherView: View {
         .frame(width: 640)
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(.regularMaterial)
-                // Slightly darker than the plain material - closer to
-                // Spotlight's dark-mode panel.
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.black.opacity(0.15))
-                )
+                // Dark mode uses the thicker material - genuinely darker
+                // (Spotlight-like) while keeping its own translucency.
+                // Light mode stays on the regular material; a darkening
+                // overlay there read as flat grey and killed the
+                // see-through effect in both modes.
+                .fill(colorScheme == .dark ? .thickMaterial : .regularMaterial)
                 .opacity(AppSettings.launcherSlightTransparency ? 0.85 : 1.0)
         )
         .ignoresSafeArea(edges: .all)
