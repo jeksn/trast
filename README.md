@@ -73,7 +73,7 @@ Press the launcher hotkey (Settings → General to record it) and type. Results 
 - **Export / Import** — back up and restore all commands and shortcuts to a JSON file
 - **Launch at login**
 - **Check for Updates** — in-app updater that downloads and installs new releases from GitHub
-- **Launcher transparency** — adjust the panel opacity from the General settings (slider with 5% steps)
+- **Panel appearance** — the launcher sits on a slightly darkened material (Spotlight-like); "Slight transparency" (General settings) keeps a subtle 85% translucency, off renders it fully opaque
 
 ## Requirements
 
@@ -123,7 +123,7 @@ Re-grant Accessibility one last time — after that, rebuilds keep the permissio
 
 | Section | Contents |
 | --- | --- |
-| **General** | Launcher hotkey, on-open view (Empty Search / Tools & Recents), transparency slider, Clipboard/Snippets tab toggles, calculator (base currency, preferred units), snippet expansion toggle, hyper key toggle and ✦ display, export/import, launch at login, update checks, Accessibility status, URL scheme reference |
+| **General** | Launcher hotkey, on-open view (Empty Search / Tools & Recents), slight-transparency toggle, Clipboard/Snippets tab toggles, calculator (base currency, preferred units), snippet expansion toggle, hyper key toggle and ✦ display, export/import, launch at login, update checks, Accessibility status, URL scheme reference |
 | **Window** | Clipboard History / Restore / Next Window hotkeys, action hotkeys (Center, Move Left/Right/Up/Down, Next Display), edge gap presets |
 | **Commands** | Add, duplicate, delete, and edit window commands: name, hotkey, size, anchor, offsets, pinning, with a live preview |
 | **Shortcuts** | Add shortcuts of three kinds (App, URL/Link, Folder/File), each with its own global hotkey; grouped by type |

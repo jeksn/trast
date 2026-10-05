@@ -388,7 +388,7 @@ final class LauncherController: NSObject, NSWindowDelegate {
         lastLayoutSignature = signature
 
         let fittingSize = hostingView.fittingSize
-        var height = min(fittingSize.height, 440)
+        var height = min(fittingSize.height, 560)
         height = max(height, 52)
         guard let target = targetFrame(height: height) else { return }
         // Skip when the destination is unchanged: objectWillChange fires on

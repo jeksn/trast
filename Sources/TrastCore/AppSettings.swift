@@ -15,7 +15,7 @@ public enum AppSettings {
     public static let snippetsEnabledKey = "snippetsEnabled"
     public static let hyperKeyEnabledKey = "hyperKeyEnabled"
     public static let hyperSymbolKey = "hyperSymbol"
-    public static let launcherOpacityKey = "launcherOpacity"
+    public static let launcherSlightTransparencyKey = "launcherSlightTransparency"
     public static let launcherClipboardTabKey = "launcherClipboardTab"
     public static let launcherSnippetsTabKey = "launcherSnippetsTab"
     public static let scratchpadTextKey = "scratchpadText"
@@ -52,9 +52,13 @@ public enum AppSettings {
         UserDefaults.standard.object(forKey: hyperSymbolKey) as? Bool ?? true
     }
 
-    public static var launcherOpacity: Double {
-        let value = UserDefaults.standard.double(forKey: launcherOpacityKey)
-        return value > 0 ? value : 0.85
+    /// True when the launcher background keeps a slight translucency
+    /// (85% opacity); off renders the background fully opaque.
+    public static var launcherSlightTransparency: Bool {
+        if UserDefaults.standard.object(forKey: launcherSlightTransparencyKey) == nil {
+            return true
+        }
+        return UserDefaults.standard.bool(forKey: launcherSlightTransparencyKey)
     }
 
     public static var launcherClipboardTab: Bool {

@@ -5,7 +5,6 @@ import AppKit
 struct LauncherView: View {
     @ObservedObject var viewModel: LauncherViewModel
     let onSelect: (LauncherItem) -> Void
-    @AppStorage(AppSettings.launcherOpacityKey) private var opacity: Double = 0.85
     @ObservedObject private var notesStore = NotesStore.shared
     @ObservedObject private var chatStore = ChatStore.shared
 
@@ -73,7 +72,7 @@ struct LauncherView: View {
                             }
                             .padding(.vertical, 4)
                         }
-                        .frame(maxHeight: 360)
+                        .frame(maxHeight: 420)
                         .onChange(of: viewModel.selectedIndex) { index in
                             if let item = viewModel.filtered[safe: index] {
                                 proxy.scrollTo(item.id, anchor: .center)
@@ -106,7 +105,13 @@ struct LauncherView: View {
         .background(
             RoundedRectangle(cornerRadius: 12)
                 .fill(.regularMaterial)
-                .opacity(opacity)
+                // Slightly darker than the plain material - closer to
+                // Spotlight's dark-mode panel.
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.black.opacity(0.15))
+                )
+                .opacity(AppSettings.launcherSlightTransparency ? 0.85 : 1.0)
         )
         .ignoresSafeArea(edges: .all)
         .onAppear {
@@ -468,7 +473,7 @@ struct LauncherView: View {
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
             }
-            .frame(maxHeight: 280)
+            .frame(maxHeight: 420)
             .onChange(of: chatStore.discussions) { _ in
                 scrollToBottom(proxy)
             }

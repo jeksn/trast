@@ -11,7 +11,7 @@ struct GeneralSettingsView: View {
     @AppStorage(AppSettings.snippetsEnabledKey) private var snippetsEnabled: Bool = false
     @AppStorage(AppSettings.hyperKeyEnabledKey) private var hyperKeyEnabled: Bool = false
     @AppStorage(AppSettings.hyperSymbolKey) private var hyperSymbol: Bool = true
-    @AppStorage(AppSettings.launcherOpacityKey) private var launcherOpacity: Double = 0.85
+    @AppStorage(AppSettings.launcherSlightTransparencyKey) private var slightTransparency: Bool = true
     @AppStorage(AppSettings.launcherClipboardTabKey) private var showClipboardTab: Bool = true
     @AppStorage(AppSettings.launcherSnippetsTabKey) private var showSnippetsTab: Bool = true
     @AppStorage(AppSettings.launcherOpenViewKey) private var openView: String = "tools"
@@ -26,14 +26,7 @@ struct GeneralSettingsView: View {
         Form {
             Section {
                 HotkeyRecorderView("Launcher:", name: HotkeyManager.openLauncher)
-                Slider(value: $launcherOpacity, in: 0.3...1.0, step: 0.05) {
-                    Text("Transparency")
-                } minimumValueLabel: {
-                    Image(systemName: "circle.dashed")
-                } maximumValueLabel: {
-                    Image(systemName: "circle.fill")
-                }
-                .tint(.accentColor)
+                Toggle("Slight transparency", isOn: $slightTransparency)
                 Picker("On open", selection: $openView) {
                     Text("Compact").tag("empty")
                     Text("Full").tag("tools")
@@ -43,7 +36,7 @@ struct GeneralSettingsView: View {
             } header: {
                 Text("Launcher")
             } footer: {
-                Text("Press this shortcut anywhere to open the Launcher. \"On open\" picks what it shows before you type: Compact is a bare search bar, Full is the tools/favorites/recent activity view (also available any time with ↓ or the list button). The Clipboard tab shows full clipboard history; the Snippets tab shows available text snippets.")
+                Text("Press this shortcut anywhere to open the Launcher. \"On open\" picks what it shows before you type: Compact is a bare search bar, Full is the tools/favorites/recent activity view (also available any time with ↓ or the list button). Slight transparency keeps a subtle translucency (85%); turn it off for a fully opaque panel. The Clipboard tab shows full clipboard history; the Snippets tab shows available text snippets.")
             }
 
             Section {
