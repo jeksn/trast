@@ -356,7 +356,7 @@ final class LauncherViewModel: ObservableObject {
     /// Mirrors `FavoritesStore` so rows re-render when a favorite toggles.
     @Published private(set) var favorites: Set<String> = FavoritesStore.shared.ids
 
-    var items: [LauncherItem] = [] {
+    @Published var items: [LauncherItem] = [] {
         didSet { rebuildIndex(); updateResults() }
     }
 

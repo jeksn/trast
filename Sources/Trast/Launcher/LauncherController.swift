@@ -65,15 +65,23 @@ final class LauncherController: NSObject, NSWindowDelegate {
         viewModel.items = makeItems()
         viewModel.reset()
 
-        let panel = ensurePanel()
-        resizePanelToFit()
-        panel.makeKeyAndOrderFront(nil)
-
         // "On open" setting: land on the unified tools/recents view instead
-        // of a bare search bar.
+        // of a bare search bar. Set the FINAL state before sizing the panel,
+        // so the sync resize below measures the real content - sizing the
+        // reset state first shrank the panel to hint-height and the async
+        // observer pass then raced the signature/frame caches.
         if AppSettings.launcherOpensToTools {
             viewModel.showRecentActivity()
         }
+
+        let panel = ensurePanel()
+        // A stale frame from the previous session (e.g. a one-row search
+        // result) must never leak into this open: bypass the signature and
+        // last-frame caches for the first pass.
+        lastLayoutSignature = nil
+        lastTargetFrame = nil
+        resizePanelToFit()
+        panel.makeKeyAndOrderFront(nil)
     }
 
     func showClipboard() {
