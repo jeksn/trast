@@ -216,11 +216,32 @@ final class SnippetExpander {
         return nil
     }
 
-    /// Expands in two phases: select the typed keyword, then paste the
-    /// expansion over the selection in one shot.
+    /// Terminals turn arrow keys into escape sequences instead of moving the
+    /// cursor, so the Shift+Left selection sweep leaks bytes into the buffer
+    /// ("!zsh" -> "!zshDDDD…"). They get the backspace path instead — which
+    /// is safe there, since a shell prompt has no autocomplete suggestion for
+    /// a backspace to eat (the reason the backspace path was abandoned for
+    /// browsers).
+    private static let terminalBundleIDs: Set<String> = [
+        "com.apple.Terminal",
+        "com.googlecode.iterm2",
+        "com.mitchellh.ghostty",
+        "net.kovidgoyal.kitty",
+        "org.alacritty",
+        "co.zeit.hyper",
+        "dev.warp.Warp-Stable",
+    ]
+
+    private static var frontmostIsTerminal: Bool {
+        NSWorkspace.shared.frontmostApplication?.bundleIdentifier
+            .map(terminalBundleIDs.contains) ?? false
+    }
+
+    /// Expands in two phases: erase the typed keyword, then paste the
+    /// expansion in one shot.
     ///
-    /// Selection (Shift+Left) instead of backspaces, and paste (Cmd+V)
-    /// instead of typing the text char-by-char:
+    /// In normal apps the erase is a Shift+Left selection sweep; in terminals
+    /// it's backspaces. Paste (Cmd+V) instead of typing the text char-by-char:
     /// - Address bars (Chrome/Safari omnibox) inline-autocomplete what you
     ///   type; the gray suggestion is a live selection, so the first backspace
     ///   eats the suggestion instead of a typed character and the keyword
@@ -243,9 +264,16 @@ final class SnippetExpander {
                 return
             }
 
-            for _ in 0..<keyword.count {
-                self.sendKey(keyCode: 123, flags: .maskShift)
-                Thread.sleep(forTimeInterval: Self.selectionInterval)
+            if Self.frontmostIsTerminal {
+                for _ in 0..<keyword.count {
+                    self.sendKey(keyCode: 51, flags: [])
+                    Thread.sleep(forTimeInterval: Self.selectionInterval)
+                }
+            } else {
+                for _ in 0..<keyword.count {
+                    self.sendKey(keyCode: 123, flags: .maskShift)
+                    Thread.sleep(forTimeInterval: Self.selectionInterval)
+                }
             }
 
             Thread.sleep(forTimeInterval: Self.phaseInterval)
