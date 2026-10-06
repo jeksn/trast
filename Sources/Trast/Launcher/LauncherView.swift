@@ -102,7 +102,12 @@ struct LauncherView: View {
                 }
             }
         }
-        .frame(width: 640)
+        .frame(
+            width: 640,
+            height: viewModel.selectedCategory == .aiChat && viewModel.chatExpanded
+                ? chatExpandedHeight
+                : nil
+        )
         .background(
             RoundedRectangle(cornerRadius: 12)
                 // Dark mode uses the thicker material - genuinely darker
@@ -485,7 +490,7 @@ struct LauncherView: View {
             // Fixed at the normal size when compact (an empty chat keeps the
             // panel launcher-sized instead of collapsing), ~80% of the
             // viewport when expanded.
-            .frame(minHeight: 280, maxHeight: viewModel.chatExpanded ? chatExpandedHeight : 280)
+            .frame(minHeight: 280, maxHeight: viewModel.chatExpanded ? 10000 : 280)
             .onChange(of: chatStore.discussions) { _ in
                 scrollToBottom(proxy)
             }
@@ -503,11 +508,12 @@ struct LauncherView: View {
         }
     }
 
-    /// ~80% of the viewport, minus the chat chrome (header + input + error).
+    /// The expanded Quick AI panel height: ~80% of the viewport, measured on
+    /// the screen the launcher opened on.
     private var chatExpandedHeight: CGFloat {
         let screen = NSScreen.screens.first { $0.frame.contains(NSEvent.mouseLocation) } ?? NSScreen.main
         let visible = screen?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
-        return visible.height * 0.8 - 130
+        return visible.height * 0.8
     }
 
     private var chatInputRow: some View {
