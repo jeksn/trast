@@ -58,10 +58,7 @@ struct LauncherView: View {
                                         LauncherRowView(
                                             viewModel: viewModel,
                                             item: item,
-                                            query: viewModel.query,
-                                            hotkeyDisplay: viewModel.hotkeyDisplay(for: item),
                                             canFavorite: viewModel.isFavoritable(item),
-                                            isFavorite: viewModel.isFavorite(item),
                                             onToggleFavorite: { viewModel.toggleFavorite(item.id) }
                                         )
                                             .onHover { hovering in
@@ -945,10 +942,7 @@ struct LauncherRowView: View {
     // A view that self-invalidates on every model change can't go stale.
     @ObservedObject var viewModel: LauncherViewModel
     let item: LauncherItem
-    let query: String
-    let hotkeyDisplay: String?
     var canFavorite = false
-    var isFavorite = false
     var onToggleFavorite: (() -> Void)? = nil
 
     private var isSelected: Bool {
@@ -957,6 +951,21 @@ struct LauncherRowView: View {
 
     private var isHovered: Bool {
         viewModel.hoveredID == item.id
+    }
+
+    // Derived, not passed in: reused rows keep stale INPUT values when body
+    // re-runs, so a row created during a search kept underlining the old
+    // query's matches after the search was cleared.
+    private var query: String {
+        viewModel.query
+    }
+
+    private var isFavorite: Bool {
+        viewModel.isFavorite(item)
+    }
+
+    private var hotkeyDisplay: String? {
+        viewModel.hotkeyDisplay(for: item)
     }
 
     var body: some View {
