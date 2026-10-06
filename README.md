@@ -25,7 +25,7 @@ Press the launcher hotkey (Settings → General to record it) and type. Results 
 - **Tools view** — ↓, Tab, or the list button next to the search bar opens the unified view: every tool as a compact row (Scratchpad, Clipboard, Snippets, Text Transformer, AI Chat — with ⌘-number badges, so Cmd+1..5 opens them from anywhere), then your favorites, then the last things you used. The "On open" setting (Settings → General, Compact or Full) shows it immediately whenever the launcher opens
 - **Text Transformer** — select text in any app, open the tool (its own hotkey in Settings → Tools, or from the tools view) and pick a case transformation with a live preview of the result (UPPERCASE, lowercase, Title Case, Sentence case, camelCase, PascalCase, snake_case, kebab-case, CONSTANT_CASE, tOGGLE cASE); Return replaces the selection in the original app. Your clipboard is borrowed for a moment and restored, and nothing lands in clipboard history
 - **AI Chat** — a minimal BYOK chat: pick a provider (OpenAI, Anthropic, Google, Mistral, OpenRouter), store the API key locally on your Mac, and chat from the launcher. No sidebar — ⌘P (or the clock button) lists previous discussions, ⌘N starts a new one. Hover an AI reply for a copy button, or copy the whole discussion from the header. Requests go straight from your Mac to the provider
-- **Favorites & recent activity** — press ↓ with an empty search for the unified view: every tool as a compact row first, then your favorites, then the last things you used. Right-click any result or press ⌘K on the highlighted row to favorite it
+- **Favorites & recent activity** — press ↓ with an empty search for the unified view: every tool as a compact row first, then your favorites, then the last things you used
 - **Recent activity** — entering a category without typing shows recently used items from that category; searching inside a category scopes the search to it, the main search fuzzy-searches everything
 - **Cmd+,** opens Settings from anywhere in the launcher
 
@@ -68,7 +68,7 @@ Press the launcher hotkey (Settings → General to record it) and type. Results 
 
 ## Other
 
-- **App, URL & Folder shortcuts** — bind global hotkeys to launch/activate an app, open a URL, or open a folder or file in Finder / its default app; pin shortcuts to the menu bar
+- **App, URL & Folder shortcuts** — bind global hotkeys to launch/activate an app, open a URL, or open a folder or file in Finder / its default app; pin shortcuts to the menu bar. Any installed app can be added as a shortcut right from the launcher: ⌘K on its row (or right-click → Options…), name autofilled, hotkey set in the same place
 - **URL scheme** — apply commands from scripts, shells, or other apps
 - **Export / Import** — back up and restore all commands and shortcuts to a JSON file
 - **Launch at login**
@@ -111,7 +111,7 @@ Re-grant Accessibility one last time — after that, rebuilds keep the permissio
 
 ## Usage
 
-- **Launcher** — press the global hotkey (configurable in Settings → General); type to search everything; ↓, Tab, or the list button opens the tools/favorites/recents view; ↑↓ to navigate results, Return to select, right-click or ⌘K a result for more options (favorites), Esc steps back (category → tools view → empty search → close), Cmd+, to open Settings, Cmd+1..5 to jump straight to a tool
+- **Launcher** — press the global hotkey (configurable in Settings → General); type to search everything; ↓, Tab, or the list button opens the tools/favorites/recents view; ↑↓ to navigate results, Return to select, ⌘K (or right-click) opens the row's options modal (favorites, add as shortcut, hotkey), Esc steps back (category → tools view → empty search → close), Cmd+, to open Settings, Cmd+1..5 to jump straight to a tool
 - **Calculator** — type math, a unit conversion, or a currency amount in the launcher; Return copies the result
 - **Clipboard History** — press the clipboard hotkey (Settings → Window) to open the launcher on the Clipboard tab, or get there via the actions list / search; type to filter the full history and select to paste into the frontmost app
 - **Scratchpad** — press the scratchpad hotkey (Settings → Scratchpad) to open the launcher on the Scratchpad tab; press again to close. Inside it: ⌘N new note, ⌘P notes list, Return opens, Esc goes back

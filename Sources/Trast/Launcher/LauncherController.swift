@@ -234,43 +234,20 @@ final class LauncherController: NSObject, NSWindowDelegate {
         }
     }
 
-    /// The row the options menu (Cmd+K) applies to — set when the menu
-    /// opens, consumed by its action.
-    private var optionsItemID: String?
-
-    /// Cmd+K: shows an NSMenu with the highlighted row's options — the same
-    /// actions as the right-click context menu, driven from the keyboard.
-    /// Pops just under the search bar (the row itself may be anywhere in the
-    /// scrolled list), with the item's title as the menu's header so the
-    /// association is explicit.
-    private func showOptionsForSelectedItem() {
-        guard               viewModel.selectedCategory != .scratchpad,
-              let item = viewModel.selectedItem(),
-              viewModel.isFavoritable(item) else { return }
-
-        let menu = NSMenu()
-        let header = NSMenuItem(title: item.title, action: nil, keyEquivalent: "")
-        header.isEnabled = false
-        menu.addItem(header)
-        menu.addItem(.separator())
-        let favoriteItem = NSMenuItem(
-            title: viewModel.isFavorite(item) ? "Remove from Favorites" : "Add to Favorites",
-            action: #selector(toggleSelectedFavorite),
-            keyEquivalent: ""
-        )
-        favoriteItem.target = self
-        menu.addItem(favoriteItem)
-        optionsItemID = item.id
-
-        guard let contentView = panel?.contentView else { return }
-        let point = NSPoint(x: 24, y: contentView.bounds.height - 56)
-        menu.popUp(positioning: nil, at: point, in: contentView)
+    /// Rebuilds the launcher item list after a store change (adding or
+    /// removing a shortcut from the options modal).
+    func refreshItems() {
+        viewModel.items = makeItems()
     }
 
-    @objc private func toggleSelectedFavorite() {
-        guard let optionsItemID else { return }
-        viewModel.toggleFavorite(optionsItemID)
-        self.optionsItemID = nil
+    /// Cmd+K (or the row context menu) opens the options modal on the
+    /// highlighted row: favorites, add-as-shortcut, and hotkey editing
+    /// without a trip to Settings. Toggle semantics when already open.
+    private func showOptionsForSelectedItem() {
+        guard viewModel.selectedCategory != .scratchpad,
+              let item = viewModel.selectedItem(),
+              viewModel.isFavoritable(item) else { return }
+        viewModel.optionsItemID = viewModel.optionsItemID == item.id ? nil : item.id
     }
 
     private func handle(_ item: LauncherItem) {
@@ -456,6 +433,20 @@ final class LauncherController: NSObject, NSWindowDelegate {
                 self.close()
                 self.openSettingsWindow()
                 return nil
+            }
+
+            // Options modal (Cmd+K): the recorder needs raw keystrokes, so
+            // everything except the close keys passes through to it.
+            if self.viewModel.optionsItemID != nil {
+                if event.keyCode == 53 {
+                    self.viewModel.optionsItemID = nil
+                    return nil
+                }
+                if event.modifierFlags.contains(.command), event.keyCode == 40 {
+                    self.viewModel.optionsItemID = nil
+                    return nil
+                }
+                return event
             }
 
             if event.modifierFlags.contains(.command) {

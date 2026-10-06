@@ -321,6 +321,9 @@ final class LauncherViewModel: ObservableObject {
     /// reused across section changes under the same identity, where @State
     /// can survive a missed hover-exit and stay stuck highlighted.
     @Published var hoveredID: String?
+    /// The row whose options modal (Cmd+K) is open.
+    @Published var optionsItemID: String?
+
     /// The AI Chat tool has two modes: the conversation, and the previous-
     /// discussions list (Cmd+P) — the same shape as the Scratchpad's editor
     /// and notes list.
@@ -391,6 +394,7 @@ final class LauncherViewModel: ObservableObject {
     func reset() {
         placeholder = Self.placeholders.randomElement() ?? Self.placeholders[0]
         selectedCategory = .all
+        optionsItemID = nil
         query = ""
         selectedIndex = 0
         focusToken = UUID()
