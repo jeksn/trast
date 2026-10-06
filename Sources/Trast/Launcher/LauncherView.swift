@@ -77,13 +77,26 @@ struct LauncherView: View {
                             }
                         }
                     }
-                } else if viewModel.selectedCategory == .all && !viewModel.showsRecentActivity {
-                    Text("Press ↓ for tools and recents · ⌘K for options")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 12)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                } else {
+                    let trimmedQuery = viewModel.query.trimmingCharacters(in: .whitespaces)
+                    if trimmedQuery.isEmpty {
+                        if viewModel.selectedCategory == .all && !viewModel.showsRecentActivity {
+                            Text("Press ↓ for tools and recents · ⌘K for options")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                                .padding(.horizontal, 16)
+                                .padding(.bottom, 12)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    } else {
+                        Text("No results for \u{201C}\(trimmedQuery)\u{201D}")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                            .padding(.horizontal, 16)
+                            .padding(.top, 10)
+                            .padding(.bottom, 12)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
                 }
             }
 
@@ -103,7 +116,8 @@ struct LauncherView: View {
             width: 640,
             height: viewModel.selectedCategory == .aiChat && viewModel.chatExpanded
                 ? chatExpandedHeight
-                : (isToolMode ? nil : 440)
+                : (isToolMode ? nil : 440),
+            alignment: .top
         )
         .background(
             RoundedRectangle(cornerRadius: 12)
