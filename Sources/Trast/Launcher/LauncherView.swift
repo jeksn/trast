@@ -73,7 +73,7 @@ struct LauncherView: View {
                             }
                             .padding(.vertical, 4)
                         }
-                        .frame(maxHeight: 420)
+                        .frame(maxHeight: 360)
                         .onChange(of: viewModel.selectedIndex) { index in
                             if let item = viewModel.filtered[safe: index] {
                                 proxy.scrollTo(item.id, anchor: .center)
@@ -375,6 +375,15 @@ struct LauncherView: View {
             }
             .buttonStyle(.plain)
             .help("Previous discussions (⌘P)")
+
+            Button {
+                viewModel.chatExpanded.toggle()
+            } label: {
+                Image(systemName: "arrow.up.left.and.arrow.down.right")
+                    .foregroundStyle(Color.secondary)
+            }
+            .buttonStyle(.plain)
+            .help(viewModel.chatExpanded ? "Compact view" : "Expand for longer conversations")
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
@@ -473,7 +482,10 @@ struct LauncherView: View {
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
             }
-            .frame(maxHeight: 420)
+            // Fixed at the normal size when compact (an empty chat keeps the
+            // panel launcher-sized instead of collapsing), ~80% of the
+            // viewport when expanded.
+            .frame(minHeight: 280, maxHeight: viewModel.chatExpanded ? chatExpandedHeight : 280)
             .onChange(of: chatStore.discussions) { _ in
                 scrollToBottom(proxy)
             }
@@ -489,6 +501,13 @@ struct LauncherView: View {
         } else {
             proxy.scrollTo(max(chatStore.currentMessages.count - 1, 0), anchor: .bottom)
         }
+    }
+
+    /// ~80% of the viewport, minus the chat chrome (header + input + error).
+    private var chatExpandedHeight: CGFloat {
+        let screen = NSScreen.screens.first { $0.frame.contains(NSEvent.mouseLocation) } ?? NSScreen.main
+        let visible = screen?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
+        return visible.height * 0.8 - 130
     }
 
     private var chatInputRow: some View {

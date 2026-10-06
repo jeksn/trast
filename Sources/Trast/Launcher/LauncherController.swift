@@ -34,6 +34,7 @@ final class LauncherController: NSObject, NSWindowDelegate {
         let transformerState: LauncherViewModel.TransformerState
         let scratchpadMode: LauncherViewModel.ScratchpadMode
         let chatMode: LauncherViewModel.ChatMode
+        let chatExpanded: Bool
     }
 
     override private init() {
@@ -380,7 +381,8 @@ final class LauncherController: NSObject, NSWindowDelegate {
             rowCount: viewModel.filtered.count,
             transformerState: viewModel.transformerState,
             scratchpadMode: viewModel.scratchpadMode,
-            chatMode: viewModel.chatMode
+            chatMode: viewModel.chatMode,
+            chatExpanded: viewModel.chatExpanded
         )
         // The content height can't have changed (selection move, hover);
         // skip the fittingSize measurement, which forces a full layout pass.
@@ -388,7 +390,10 @@ final class LauncherController: NSObject, NSWindowDelegate {
         lastLayoutSignature = signature
 
         let fittingSize = hostingView.fittingSize
-        var height = min(fittingSize.height, 560)
+        // The expanded Quick AI view sizes itself to the viewport; everything
+        // else caps at the previous 440.
+        let cap: CGFloat = viewModel.chatExpanded ? .greatestFiniteMagnitude : 440
+        var height = min(fittingSize.height, cap)
         height = max(height, 52)
         guard let target = targetFrame(height: height) else { return }
         // Skip when the destination is unchanged: objectWillChange fires on
@@ -425,7 +430,10 @@ final class LauncherController: NSObject, NSWindowDelegate {
         let alignedWidth = (panel.frame.width * scale).rounded() / scale
         let alignedHeight = (height * scale).rounded() / scale
         let x = visible.midX - alignedWidth / 2
-        let y = visible.maxY - visible.height * 0.32 - alignedHeight
+        // Never target below the visible frame: a panel taller than the
+        // 32% slot pushed y negative and AppKit clamped the window to the
+        // bottom edge of the screen.
+        let y = max(visible.minY, visible.maxY - visible.height * 0.32 - alignedHeight)
         let alignedX = (x * scale).rounded() / scale
         let alignedY = (y * scale).rounded() / scale
         return NSRect(x: alignedX, y: alignedY, width: alignedWidth, height: alignedHeight)

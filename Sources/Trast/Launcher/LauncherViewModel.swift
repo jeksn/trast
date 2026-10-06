@@ -331,6 +331,9 @@ final class LauncherViewModel: ObservableObject {
 
     @Published var chatMode: ChatMode = .chat
     @Published var chatSelectedIndex = 0
+    /// Quick AI's expand toggle: normal launcher-sized panel vs ~80% of
+    /// the viewport for long conversations.
+    @Published var chatExpanded = false
     @Published var scratchpadMode: ScratchpadMode = .editor
     @Published var notesSelectedIndex = 0
 
@@ -709,6 +712,7 @@ final class LauncherViewModel: ObservableObject {
         if category == .aiChat {
             chatMode = .chat
             chatSelectedIndex = 0
+            chatExpanded = false
         }
         if category == .textTransformer {
             LauncherController.shared.enterTextTransformer()
