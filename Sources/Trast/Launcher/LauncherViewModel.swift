@@ -321,8 +321,100 @@ final class LauncherViewModel: ObservableObject {
     /// reused across section changes under the same identity, where @State
     /// can survive a missed hover-exit and stay stuck highlighted.
     @Published var hoveredID: String?
-    /// The row whose options modal (Cmd+K) is open.
+    /// The row whose options modal (Cmd+K) is open, and the keyboard
+    /// selection within it.
     @Published var optionsItemID: String?
+    @Published var optionsSelectedIndex = 0
+
+    /// An activatable row in the options modal (the hotkey recorder is
+    /// rendered separately and stays mouse-driven).
+    enum OptionsAction: Identifiable {
+        case favorite
+        case addShortcut
+        case removeShortcut
+
+        var id: String {
+            switch self {
+            case .favorite: return "favorite"
+            case .addShortcut: return "addShortcut"
+            case .removeShortcut: return "removeShortcut"
+            }
+        }
+    }
+
+    /// The row the modal applies to, resolved against the current results
+    /// (a stale id closes the modal).
+    var optionsItem: LauncherItem? {
+        guard let id = optionsItemID else { return nil }
+        return filtered.first { $0.id == id }
+    }
+
+    var optionsActions: [OptionsAction] {
+        guard let item = optionsItem else { return [] }
+        var actions: [OptionsAction] = []
+        if isFavoritable(item) {
+            actions.append(.favorite)
+        }
+        if case .installedApp(_, let name) = item, name.rawValue.hasPrefix("installedApp.") {
+            actions.append(.addShortcut)
+        }
+        if underlyingShortcut(for: item) != nil {
+            actions.append(.removeShortcut)
+        }
+        return actions
+    }
+
+    func openOptions(for id: String) {
+        if optionsItemID == id {
+            optionsItemID = nil
+        } else {
+            optionsItemID = id
+            optionsSelectedIndex = 0
+        }
+    }
+
+    func moveOptionsSelection(_ delta: Int) {
+        let count = optionsActions.count
+        guard count > 0 else { return }
+        optionsSelectedIndex = (optionsSelectedIndex + delta + count) % count
+    }
+
+    func activateSelectedOption() {
+        guard let action = optionsActions[safe: optionsSelectedIndex],
+              let item = optionsItem else { return }
+        switch action {
+        case .favorite:
+            toggleFavorite(item.id)
+        case .addShortcut:
+            // Create the shortcut (name autofilled) and hand off to Settings
+            // on the new shortcut so the hotkey can be recorded there.
+            guard case .installedApp(let app, _) = item else { return }
+            let added = AppShortcutStore.shared.add(app.appShortcut)
+            optionsItemID = nil
+            LauncherController.shared.openSettingsRevealingShortcut(added.id)
+        case .removeShortcut:
+            guard let shortcut = underlyingShortcut(for: item) else { return }
+            AppShortcutStore.shared.remove(shortcut)
+            LauncherController.shared.refreshItems()
+            optionsItemID = nil
+        }
+    }
+
+    /// The AppShortcut behind a row, when there is one.
+    func underlyingShortcut(for item: LauncherItem) -> AppShortcut? {
+        switch item {
+        case .appShortcut(let shortcut, _):
+            return shortcut
+        case .installedApp(let app, let name) where name.rawValue.hasPrefix("appJump."):
+            return AppShortcutStore.shared.validShortcuts.first {
+                $0.kind == .app
+                    && ($0.bundleIdentifier != nil && $0.bundleIdentifier == app.bundleIdentifier
+                        || $0.bundleURL?.path == app.bundleURL.path)
+            }
+        default:
+            return nil
+        }
+    }
 
     /// The AI Chat tool has two modes: the conversation, and the previous-
     /// discussions list (Cmd+P) — the same shape as the Scratchpad's editor

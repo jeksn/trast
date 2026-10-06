@@ -5,6 +5,21 @@ struct SettingsView: View {
     @State private var selection: SettingsSection = .general
 
     var body: some View {
+        settingsBody
+            .onAppear { applyPendingSection() }
+            .onReceive(NotificationCenter.default.publisher(for: .openSettings)) { _ in
+                applyPendingSection()
+            }
+    }
+
+    private func applyPendingSection() {
+        if let section = SettingsWindow.pendingSection {
+            selection = section
+            SettingsWindow.pendingSection = nil
+        }
+    }
+
+    private var settingsBody: some View {
         NavigationSplitView {
             List(selection: $selection) {
                 Section {

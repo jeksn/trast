@@ -247,7 +247,17 @@ final class LauncherController: NSObject, NSWindowDelegate {
         guard viewModel.selectedCategory != .scratchpad,
               let item = viewModel.selectedItem(),
               viewModel.isFavoritable(item) else { return }
-        viewModel.optionsItemID = viewModel.optionsItemID == item.id ? nil : item.id
+        viewModel.openOptions(for: item.id)
+    }
+
+    /// Closes the launcher and opens Settings on the Shortcuts tab with the
+    /// given shortcut selected — the "continue in Settings" handoff from
+    /// the options modal's Add as Shortcut.
+    func openSettingsRevealingShortcut(_ shortcutID: UUID) {
+        close()
+        SettingsWindow.pendingSection = .shortcuts
+        SettingsWindow.pendingShortcutID = shortcutID
+        NotificationCenter.default.post(name: .openSettings, object: nil)
     }
 
     private func handle(_ item: LauncherItem) {
@@ -435,8 +445,9 @@ final class LauncherController: NSObject, NSWindowDelegate {
                 return nil
             }
 
-            // Options modal (Cmd+K): the recorder needs raw keystrokes, so
-            // everything except the close keys passes through to it.
+            // Options modal (Cmd+K): arrows + Return drive its actions;
+            // everything else passes through so the hotkey recorder keeps
+            // receiving raw keystrokes.
             if self.viewModel.optionsItemID != nil {
                 if event.keyCode == 53 {
                     self.viewModel.optionsItemID = nil
@@ -444,6 +455,18 @@ final class LauncherController: NSObject, NSWindowDelegate {
                 }
                 if event.modifierFlags.contains(.command), event.keyCode == 40 {
                     self.viewModel.optionsItemID = nil
+                    return nil
+                }
+                if event.keyCode == 125 {
+                    self.viewModel.moveOptionsSelection(1)
+                    return nil
+                }
+                if event.keyCode == 126 {
+                    self.viewModel.moveOptionsSelection(-1)
+                    return nil
+                }
+                if event.keyCode == 36 || event.keyCode == 76 {
+                    self.viewModel.activateSelectedOption()
                     return nil
                 }
                 return event

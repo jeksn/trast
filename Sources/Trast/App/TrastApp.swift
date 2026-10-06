@@ -32,6 +32,12 @@ struct TrastApp: App {
 /// Shared open-settings sequence used by the menu bar, the launcher, and the
 /// notification observer.
 enum SettingsWindow {
+    /// A requested landing spot for the next Settings open, consumed by
+    /// SettingsView / AppShortcutListView (the launcher's Add as Shortcut
+    /// hands off here).
+    static var pendingSection: SettingsSection?
+    static var pendingShortcutID: UUID?
+
     static func open(_ openWindow: OpenWindowAction) {
         NSApp.activate(ignoringOtherApps: true)
         openWindow(id: "settings")

@@ -103,7 +103,7 @@ struct LauncherView: View {
             width: 640,
             height: viewModel.selectedCategory == .aiChat && viewModel.chatExpanded
                 ? chatExpandedHeight
-                : nil
+                : (isToolMode ? nil : 440)
         )
         .background(
             RoundedRectangle(cornerRadius: 12)
@@ -116,7 +116,7 @@ struct LauncherView: View {
                 .opacity(AppSettings.launcherSlightTransparency ? 0.85 : 1.0)
         )
         .overlay {
-            if let item = optionsItem {
+            if let item = viewModel.optionsItem {
                 optionsModal(item)
             }
         }
@@ -140,11 +140,16 @@ struct LauncherView: View {
         }
     }
 
-    /// The row whose options modal is open, resolved against the current
-    /// results (stale ids — e.g. after a store change — close the modal).
-    private var optionsItem: LauncherItem? {
-        guard let id = viewModel.optionsItemID else { return nil }
-        return viewModel.filtered.first { $0.id == id }
+    /// Search and category views render at a fixed panel height (Spotlight-
+    /// like) so short result lists never shrink the window; tools size to
+    /// their content.
+    private var isToolMode: Bool {
+        switch viewModel.selectedCategory {
+        case .scratchpad, .textTransformer, .aiChat:
+            return true
+        default:
+            return false
+        }
     }
 
     /// Cmd+K / right-click options modal: favorites, add-as-shortcut, and
@@ -182,59 +187,22 @@ struct LauncherView: View {
 
                 Divider()
 
-                VStack(alignment: .leading, spacing: 12) {
-                    if viewModel.isFavoritable(item) {
-                        let isFavorite = viewModel.isFavorite(item)
-                        Button {
-                            viewModel.toggleFavorite(item.id)
-                        } label: {
-                            Label(
-                                isFavorite ? "Remove from Favorites" : "Add to Favorites",
-                                systemImage: isFavorite ? "star.slash" : "star"
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    }
-
-                    // Installed app without a shortcut yet: one click adds it,
-                    // name autofilled.
-                    if case .installedApp(let app, let name) = item,
-                       name.rawValue.hasPrefix("installedApp.") {
-                        Button {
-                            let added = AppShortcutStore.shared.add(app.appShortcut)
-                            LauncherController.shared.refreshItems()
-                            // The row's identity becomes the new shortcut's —
-                            // keep the modal on it so the hotkey can be set.
-                            viewModel.optionsItemID = HotkeyManager.appJumpName(for: added.id).rawValue
-                        } label: {
-                            Label("Add as Shortcut", systemImage: "arrow.right.square")
-                        }
-                        .buttonStyle(.plain)
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(Array(viewModel.optionsActions.enumerated()), id: \.element.id) { index, action in
+                        optionRow(action: action, index: index)
                     }
 
                     if let hotkeyName = item.hotkeyName, isEditableHotkey(hotkeyName) {
                         Divider()
+                            .padding(.vertical, 4)
                         HotkeyRecorderView("Hotkey:", name: hotkeyName)
-                    }
-
-                    if let shortcut = underlyingShortcut(for: item) {
-                        Divider()
-                        Button {
-                            AppShortcutStore.shared.remove(shortcut)
-                            LauncherController.shared.refreshItems()
-                            viewModel.optionsItemID = nil
-                        } label: {
-                            Label("Remove Shortcut", systemImage: "trash")
-                                .foregroundStyle(Color.red)
-                        }
-                        .buttonStyle(.plain)
                     }
                 }
                 .padding(12)
 
                 Divider()
 
-                Text("Esc to close")
+                Text("↑↓ to move · Return to run · Esc to close")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
                     .frame(maxWidth: .infinity)
@@ -253,27 +221,56 @@ struct LauncherView: View {
         }
     }
 
+    private func optionRow(action: LauncherViewModel.OptionsAction, index: Int) -> some View {
+        Button {
+            viewModel.optionsSelectedIndex = index
+            viewModel.activateSelectedOption()
+        } label: {
+            HStack(spacing: 10) {
+                Label(optionLabel(action), systemImage: optionIcon(action))
+                    .foregroundStyle(action == .removeShortcut ? Color.red : Color.primary)
+                Spacer()
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .background(
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(index == viewModel.optionsSelectedIndex
+                          ? Color.accentColor.opacity(0.25)
+                          : Color.clear)
+            )
+            .contentShape(RoundedRectangle(cornerRadius: 6))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func optionLabel(_ action: LauncherViewModel.OptionsAction) -> String {
+        switch action {
+        case .favorite:
+            return viewModel.isFavorite(viewModel.optionsItem!) ? "Remove from Favorites" : "Add to Favorites"
+        case .addShortcut:
+            return "Add as Shortcut…"
+        case .removeShortcut:
+            return "Remove Shortcut"
+        }
+    }
+
+    private func optionIcon(_ action: LauncherViewModel.OptionsAction) -> String {
+        switch action {
+        case .favorite:
+            return viewModel.isFavorite(viewModel.optionsItem!) ? "star.slash" : "star"
+        case .addShortcut:
+            return "arrow.right.square"
+        case .removeShortcut:
+            return "trash"
+        }
+    }
+
     /// Hotkeys the modal can edit: shortcuts, window commands, actions —
     /// not the synthetic names plain installed apps carry.
     private func isEditableHotkey(_ name: KeyboardShortcuts.Name) -> Bool {
         let raw = name.rawValue
         return raw.hasPrefix("appJump.") || raw.hasPrefix("command.") || raw.hasPrefix("action.")
-    }
-
-    /// The AppShortcut behind a row, when there is one.
-    private func underlyingShortcut(for item: LauncherItem) -> AppShortcut? {
-        switch item {
-        case .appShortcut(let shortcut, _):
-            return shortcut
-        case .installedApp(let app, let name) where name.rawValue.hasPrefix("appJump."):
-            return AppShortcutStore.shared.validShortcuts.first {
-                $0.kind == .app
-                    && ($0.bundleIdentifier != nil && $0.bundleIdentifier == app.bundleIdentifier
-                        || $0.bundleURL?.path == app.bundleURL.path)
-            }
-        default:
-            return nil
-        }
     }
 
     private var searchField: some View {
@@ -1165,7 +1162,7 @@ struct LauncherRowView: View {
         .contextMenu {
             if canFavorite {
                 Button("Options…") {
-                    viewModel.optionsItemID = item.id
+                    viewModel.openOptions(for: item.id)
                 }
             }
         }

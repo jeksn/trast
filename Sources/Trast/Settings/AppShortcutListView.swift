@@ -7,6 +7,21 @@ struct AppShortcutListView: View {
     @State private var selectionID: UUID?
 
     var body: some View {
+        listBody
+            .onAppear { applyPendingShortcut() }
+            .onReceive(NotificationCenter.default.publisher(for: .openSettings)) { _ in
+                applyPendingShortcut()
+            }
+    }
+
+    private func applyPendingShortcut() {
+        if let id = SettingsWindow.pendingShortcutID {
+            selectionID = id
+            SettingsWindow.pendingShortcutID = nil
+        }
+    }
+
+    private var listBody: some View {
         HSplitView {
             List(selection: $selectionID) {
                 let apps = store.shortcuts.filter { $0.kind == .app }
