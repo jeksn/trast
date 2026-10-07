@@ -19,7 +19,6 @@ public enum AppSettings {
     public static let launcherClipboardTabKey = "launcherClipboardTab"
     public static let launcherSnippetsTabKey = "launcherSnippetsTab"
     public static let scratchpadTextKey = "scratchpadText"
-    public static let launcherOpenViewKey = "launcherOpenView"
     public static let transformOrderKey = "transformOrder"
     public static let transformDisabledKey = "transformDisabled"
     public static let baseCurrencyKey = "baseCurrency"
@@ -79,13 +78,6 @@ public enum AppSettings {
     /// convert into.
     public static var preferredUnits: String {
         UserDefaults.standard.string(forKey: preferredUnitsKey) ?? "metric"
-    }
-
-    /// True when the launcher should open on the tools/recents view
-    /// ("tools", the default — "Full") instead of a bare search bar
-    /// ("empty" — "Compact").
-    public static var launcherOpensToTools: Bool {
-        (UserDefaults.standard.string(forKey: launcherOpenViewKey) ?? "tools") == "tools"
     }
 
     /// The user's chosen transformation order (Settings → Text Transformer).

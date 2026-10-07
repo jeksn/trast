@@ -79,16 +79,7 @@ struct LauncherView: View {
                     }
                 } else {
                     let trimmedQuery = viewModel.query.trimmingCharacters(in: .whitespaces)
-                    if trimmedQuery.isEmpty {
-                        if viewModel.selectedCategory == .all && !viewModel.showsRecentActivity {
-                            Text("Press ↓ for tools and recents · ⌘K for options")
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
-                                .padding(.horizontal, 16)
-                                .padding(.bottom, 12)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                    } else {
+                    if !trimmedQuery.isEmpty {
                         Text("No results for \u{201C}\(trimmedQuery)\u{201D}")
                             .font(.caption)
                             .foregroundStyle(.tertiary)
@@ -116,7 +107,7 @@ struct LauncherView: View {
             width: 640,
             height: viewModel.selectedCategory == .aiChat && viewModel.chatExpanded
                 ? chatExpandedHeight
-                : (isToolMode ? nil : 440),
+                : nil,
             alignment: .top
         )
         .background(
@@ -151,18 +142,6 @@ struct LauncherView: View {
             chatFocused = true
         } else {
             isFocused = true
-        }
-    }
-
-    /// Search and category views render at a fixed panel height (Spotlight-
-    /// like) so short result lists never shrink the window; tools size to
-    /// their content.
-    private var isToolMode: Bool {
-        switch viewModel.selectedCategory {
-        case .scratchpad, .textTransformer, .aiChat:
-            return true
-        default:
-            return false
         }
     }
 
@@ -298,7 +277,7 @@ struct LauncherView: View {
             Button {
                 viewModel.showRecentActivity()
             } label: {
-                Image(systemName: "list.bullet")
+                Image(systemName: "arrow.right.to.line")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(.secondary)
                     .frame(width: 28, height: 22)

@@ -65,15 +65,6 @@ final class LauncherController: NSObject, NSWindowDelegate {
         viewModel.items = makeItems()
         viewModel.reset()
 
-        // "On open" setting: land on the unified tools/recents view instead
-        // of a bare search bar. Set the FINAL state before sizing the panel,
-        // so the sync resize below measures the real content - sizing the
-        // reset state first shrank the panel to hint-height and the async
-        // observer pass then raced the signature/frame caches.
-        if AppSettings.launcherOpensToTools {
-            viewModel.showRecentActivity()
-        }
-
         let panel = ensurePanel()
         // A stale frame from the previous session (e.g. a one-row search
         // result) must never leak into this open: bypass the signature and
@@ -229,7 +220,7 @@ final class LauncherController: NSObject, NSWindowDelegate {
             // view — not straight out of the launcher.
             viewModel.query = ""
         } else {
-            // Empty search, Compact or Full: close immediately.
+            // Empty search: close immediately.
             close()
         }
     }
@@ -612,12 +603,17 @@ final class LauncherController: NSObject, NSWindowDelegate {
             switch event.keyCode {
             case 48:
                 // Tab opens the unified tools/recents view — same as ↓ and
-                // the search bar's list button — when the search is empty.
+                // the search bar's list button — when the search is empty;
+                // otherwise it walks the list like ↓ (Shift+Tab like ↑).
                 if self.viewModel.selectedCategory == .all,
                    self.viewModel.query.trimmingCharacters(in: .whitespaces).isEmpty,
                    self.viewModel.filtered.isEmpty {
-                    self.viewModel.showRecentActivity()
+                    if !event.modifierFlags.contains(.shift) {
+                        self.viewModel.showRecentActivity()
+                    }
+                    return nil
                 }
+                self.viewModel.moveSelection(event.modifierFlags.contains(.shift) ? -1 : 1)
                 return nil
             case 123, 124, 125, 126:
                 if event.keyCode == 125 {

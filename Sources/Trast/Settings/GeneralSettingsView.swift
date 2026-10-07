@@ -14,7 +14,6 @@ struct GeneralSettingsView: View {
     @AppStorage(AppSettings.launcherSlightTransparencyKey) private var slightTransparency: Bool = true
     @AppStorage(AppSettings.launcherClipboardTabKey) private var showClipboardTab: Bool = true
     @AppStorage(AppSettings.launcherSnippetsTabKey) private var showSnippetsTab: Bool = true
-    @AppStorage(AppSettings.launcherOpenViewKey) private var openView: String = "tools"
     @AppStorage(AppSettings.baseCurrencyKey) private var baseCurrency: String = "USD"
     @AppStorage(AppSettings.preferredUnitsKey) private var preferredUnits: String = "metric"
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
@@ -27,16 +26,12 @@ struct GeneralSettingsView: View {
             Section {
                 HotkeyRecorderView("Launcher:", name: HotkeyManager.openLauncher)
                 Toggle("Slight transparency", isOn: $slightTransparency)
-                Picker("On open", selection: $openView) {
-                    Text("Compact").tag("empty")
-                    Text("Full").tag("tools")
-                }
                 Toggle("Show Clipboard tab", isOn: $showClipboardTab)
                 Toggle("Show Snippets tab", isOn: $showSnippetsTab)
             } header: {
                 Text("Launcher")
             } footer: {
-                Text("Press this shortcut anywhere to open the Launcher. \"On open\" picks what it shows before you type: Compact is a bare search bar, Full is the tools/favorites/recent activity view (also available any time with ↓ or the list button). Slight transparency keeps a subtle translucency (85%); turn it off for a fully opaque panel. The Clipboard tab shows full clipboard history; the Snippets tab shows available text snippets.")
+                Text("Press this shortcut anywhere to open the Launcher. It opens as a bare search bar; press ↓, Tab, or the list button for the tools/favorites/recent activity view. Slight transparency keeps a subtle translucency (85%); turn it off for a fully opaque panel. The Clipboard tab shows full clipboard history; the Snippets tab shows available text snippets.")
             }
 
             Section {
